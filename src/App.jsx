@@ -1,9 +1,318 @@
 import { useState, useRef, useEffect } from "react";
-import { computeAdjustmentSets, backdoorPaths, descendants } from "./engine/index.js";
-import { NODE_COLORS, INIT_NODES, INIT_EDGES, nuid, euid } from "./constants.js";
-import LIBRARY from "./data/library.js";
+
+// ─── Causal Inference Engine ───────────────────────────────────────────────
+
+function descendants(nodeId, edges) {
+  const desc = new Set();
+  const q = [nodeId];
+  while (q.length) {
+    const cur = q.shift();
+    for (const e of edges) {
+      if (e.src === cur && !desc.has(e.tgt)) { desc.add(e.tgt); q.push(e.tgt); }
+    }
+  }
+  return desc;
+}
+
+function allPaths(start, end, edges) {
+  const paths = [];
+  const adj = {};
+  for (const e of edges) {
+    (adj[e.src] = adj[e.src] || []).push(e.tgt);
+    (adj[e.tgt] = adj[e.tgt] || []).push(e.src);
+  }
+  function dfs(cur, path, visited) {
+    if (cur === end) { paths.push([...path]); return; }
+    if (path.length > 12) return;
+    for (const nb of (adj[cur] || [])) {
+      if (!visited.has(nb)) {
+        visited.add(nb); path.push(nb);
+        dfs(nb, path, visited);
+        path.pop(); visited.delete(nb);
+      }
+    }
+  }
+  dfs(start, [start], new Set([start]));
+  return paths;
+}
+
+function isCollider(node, prev, next, edges) {
+  return edges.some(e => e.src === prev && e.tgt === node) &&
+         edges.some(e => e.src === next  && e.tgt === node);
+}
+
+function pathBlocked(path, Z, edges) {
+  const Zset = new Set(Z);
+  for (let i = 1; i < path.length - 1; i++) {
+    const [p, c, n] = [path[i-1], path[i], path[i+1]];
+    if (isCollider(c, p, n, edges)) {
+      const desc = descendants(c, edges);
+      if (!Zset.has(c) && ![...desc].some(d => Zset.has(d))) return true;
+    } else {
+      if (Zset.has(c)) return true;
+    }
+  }
+  return false;
+}
+
+function backdoorPaths(exp, out, edges) {
+  // Only return paths that are genuinely open (d-connected) in the empty conditioning set.
+  // Paths naturally blocked by an unconditioned collider are not open backdoor paths.
+  return allPaths(exp, out, edges).filter(path =>
+    path.length >= 2 &&
+    edges.some(e => e.src === path[1] && e.tgt === exp) &&
+    !pathBlocked(path, [], edges)
+  );
+}
+
+function computeAdjustmentSets(exp, out, nodes, edges) {
+  if (!exp || !out) return null;
+  const desc = descendants(exp, edges);
+  const cands = nodes
+    .filter(n => n.id !== exp && n.id !== out && !desc.has(n.id) && n.type !== 'latent')
+    .map(n => n.id).slice(0, 10);
+  const bkPaths = backdoorPaths(exp, out, edges);
+  const aPaths  = allPaths(exp, out, edges);
+  if (!bkPaths.length) return { sets: [[]], backdoor: [], all: aPaths };
+  const valid = [];
+  for (let mask = 0; mask < (1 << cands.length); mask++) {
+    const Z = cands.filter((_, i) => mask & (1 << i));
+    if (bkPaths.every(p => pathBlocked(p, Z, edges))) valid.push(Z);
+  }
+  const minimal = valid.filter(s => !valid.some(o => o.length < s.length && o.every(x => s.includes(x))));
+  return { sets: minimal, backdoor: bkPaths, all: aPaths };
+}
+
+// ─── Training Library ──────────────────────────────────────────────────────
+
+const LIBRARY = [
+  {
+    id: 'confounding',
+    name: 'Classic Confounding',
+    tag: 'Confounding',
+    color: '#e8972a',
+    description: 'A confounder is a common cause of both the exposure and outcome, creating a spurious association. Adjustment for the confounder closes the backdoor path and yields an unbiased estimate of the causal effect.',
+    refs: [
+      { title: 'Causal diagrams for epidemiologic research', cite: 'Greenland, Pearl & Robins · Epidemiology 1999', url: 'https://doi.org/10.1097/00001648-199901000-00008' },
+      { title: 'Causal Inference: What If (Ch. 7 — Confounding)', cite: 'Hernán & Robins · CRC Press 2020', url: 'https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/' },
+      { title: 'Reducing bias through directed acyclic graphs', cite: 'Shrier & Platt · BMC Med Res Methodol 2008', url: 'https://doi.org/10.1186/1471-2288-8-70' },
+    ],
+    exposure: 'exp', outcome: 'out',
+    nodes: [
+      { id:'conf', label:'Confounder', x:220, y:140, type:'confounder' },
+      { id:'exp',  label:'Exposure',  x:150, y:300, type:'exposure'   },
+      { id:'out',  label:'Outcome',   x:450, y:300, type:'outcome'    },
+    ],
+    edges: [
+      { id:'e1', src:'conf', tgt:'exp' },
+      { id:'e2', src:'conf', tgt:'out' },
+      { id:'e3', src:'exp',  tgt:'out' },
+    ],
+  },
+  {
+    id: 'mbias',
+    name: 'M-Bias',
+    tag: 'M-Bias',
+    color: '#e53e3e',
+    description: 'M-bias occurs when a pre-exposure variable (M) is a common descendant of two unmeasured causes — one related to the exposure and one to the outcome. Conditioning on M opens a collider path and introduces bias, even though M precedes exposure.',
+    refs: [
+      { title: 'Avoiding bias due to perfect prediction in multiple logistic regression (M-bias discussion)', cite: 'Greenland · Stat Med 2003', url: 'https://doi.org/10.1002/sim.1485' },
+      { title: 'To Adjust or Not to Adjust? Sensitivity Analysis of M-Bias', cite: 'Ding & Miratrix · JCGS 2015', url: 'https://doi.org/10.1080/10618600.2015.1023764' },
+      { title: 'A structural approach to selection bias', cite: 'Hernán, Hernández-Díaz & Robins · Epidemiology 2004', url: 'https://doi.org/10.1097/01.ede.0000135174.63482.43' },
+    ],
+    exposure: 'exp', outcome: 'out',
+    nodes: [
+      { id:'u1',  label:'U1',      x:130, y:130, type:'latent'     },
+      { id:'u2',  label:'U2',      x:470, y:130, type:'latent'     },
+      { id:'m',   label:'M',       x:300, y:230, type:'confounder' },
+      { id:'exp', label:'Exposure',x:150, y:370, type:'exposure'   },
+      { id:'out', label:'Outcome', x:450, y:370, type:'outcome'    },
+    ],
+    edges: [
+      { id:'e1', src:'u1',  tgt:'exp' },
+      { id:'e2', src:'u1',  tgt:'m'   },
+      { id:'e3', src:'u2',  tgt:'m'   },
+      { id:'e4', src:'u2',  tgt:'out' },
+      { id:'e5', src:'exp', tgt:'out' },
+    ],
+  },
+  {
+    id: 'collider',
+    name: 'Collider Bias',
+    tag: 'Collider',
+    color: '#8b5cf6',
+    description: 'A collider is a variable with two or more causes. Conditioning on a collider (or its descendant) opens a non-causal path between those causes, inducing a spurious association. This is also the mechanism behind index event bias and Berkson\'s bias.',
+    refs: [
+      { title: 'Causality: Models, Reasoning and Inference (§1.2 — Colliders)', cite: 'Pearl · Cambridge University Press, 2nd ed. 2009', url: 'http://bayes.cs.ucla.edu/BOOK-2K/' },
+      { title: 'Collider bias undermines our understanding of COVID-19 disease risk and severity', cite: 'Griffith et al. · Nature Comms 2020', url: 'https://doi.org/10.1038/s41467-020-19478-2' },
+      { title: 'Index event bias as an explanation for the paradoxes of recurrence risk research', cite: 'Dahabreh & Kent · JAMA 2011', url: 'https://doi.org/10.1001/jama.2011.163' },
+    ],
+    exposure: 'exp', outcome: 'out',
+    nodes: [
+      { id:'exp', label:'Exposure', x:150, y:200, type:'exposure'   },
+      { id:'out', label:'Outcome',  x:450, y:200, type:'outcome'    },
+      { id:'col', label:'Collider', x:300, y:340, type:'variable'   },
+    ],
+    edges: [
+      { id:'e1', src:'exp', tgt:'out' },
+      { id:'e2', src:'exp', tgt:'col' },
+      { id:'e3', src:'out', tgt:'col' },
+    ],
+  },
+  {
+    id: 'selection',
+    name: 'Selection Bias',
+    tag: 'Selection Bias',
+    color: '#0da271',
+    description: 'Selection bias arises when study inclusion depends on both exposure and outcome (or their causes). The selection node acts as a collider; restricting analysis to selected individuals conditions on it, opening a backdoor path and distorting effect estimates.',
+    refs: [
+      { title: 'A structural approach to selection bias', cite: 'Hernán, Hernández-Díaz & Robins · Epidemiology 2004', url: 'https://doi.org/10.1097/01.ede.0000135174.63482.43' },
+      { title: 'Causal Inference: What If (Ch. 8 — Selection Bias)', cite: 'Hernán & Robins · CRC Press 2020', url: 'https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/' },
+      { title: 'Selection bias in the estimation of effect modification', cite: 'Lash & Fink · Epidemiology 2004', url: 'https://doi.org/10.1097/01.ede.0000099081.60081.4f' },
+    ],
+    exposure: 'exp', outcome: 'out',
+    nodes: [
+      { id:'exp', label:'Exposure', x:150, y:200, type:'exposure'   },
+      { id:'out', label:'Outcome',  x:450, y:200, type:'outcome'    },
+      { id:'sel', label:'Selected', x:300, y:340, type:'variable'   },
+    ],
+    edges: [
+      { id:'e1', src:'exp', tgt:'out' },
+      { id:'e2', src:'exp', tgt:'sel' },
+      { id:'e3', src:'out', tgt:'sel' },
+    ],
+  },
+  {
+    id: 'mediation',
+    name: 'Mediation',
+    tag: 'Mediation',
+    color: '#3b7cf4',
+    description: 'A mediator lies on the causal path from exposure to outcome. Conditioning on the mediator blocks the indirect effect and yields only the direct effect. Avoiding adjustment for mediators is essential when the total effect is of interest.',
+    refs: [
+      { title: 'Explanation in Causal Inference: Methods for Mediation and Interaction', cite: 'VanderWeele · Oxford University Press 2015', url: 'https://global.oup.com/academic/product/explanation-in-causal-inference-9780199325870' },
+      { title: 'Mediation Analysis with a Survival Outcome', cite: 'VanderWeele · Int J Epidemiol 2011', url: 'https://doi.org/10.1093/ije/dyr066' },
+      { title: 'Causal Inference: What If (Ch. 17 — Mediating variables)', cite: 'Hernán & Robins · CRC Press 2020', url: 'https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/' },
+    ],
+    exposure: 'exp', outcome: 'out',
+    nodes: [
+      { id:'exp', label:'Exposure', x:130, y:260, type:'exposure'  },
+      { id:'med', label:'Mediator', x:300, y:260, type:'variable'  },
+      { id:'out', label:'Outcome',  x:470, y:260, type:'outcome'   },
+    ],
+    edges: [
+      { id:'e1', src:'exp', tgt:'med' },
+      { id:'e2', src:'med', tgt:'out' },
+      { id:'e3', src:'exp', tgt:'out' },
+    ],
+  },
+  {
+    id: 'iv',
+    name: 'Instrumental Variable',
+    tag: 'Instruments',
+    color: '#e8972a',
+    description: 'An instrumental variable (IV) affects the outcome only through the exposure and is independent of unmeasured confounders. IVs can identify causal effects even in the presence of unobserved confounding, a cornerstone of Mendelian randomization.',
+    refs: [
+      { title: 'Causality: Models, Reasoning and Inference (§5.4 — Instrumental Variables)', cite: 'Pearl · Cambridge University Press, 2nd ed. 2009', url: 'http://bayes.cs.ucla.edu/BOOK-2K/' },
+      { title: 'Mendelian randomization: using genes as instruments for making causal inferences', cite: 'Davey Smith & Ebrahim · Stat Med 2003', url: 'https://doi.org/10.1002/sim.1792' },
+      { title: 'Causal Inference: What If (Ch. 16 — Instrumental variable estimation)', cite: 'Hernán & Robins · CRC Press 2020', url: 'https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/' },
+    ],
+    exposure: 'exp', outcome: 'out',
+    nodes: [
+      { id:'iv',   label:'IV',        x:100, y:260, type:'variable'   },
+      { id:'exp',  label:'Exposure',  x:280, y:260, type:'exposure'   },
+      { id:'out',  label:'Outcome',   x:460, y:260, type:'outcome'    },
+      { id:'u',    label:'U (unobs)', x:370, y:140, type:'latent'     },
+    ],
+    edges: [
+      { id:'e1', src:'iv',  tgt:'exp' },
+      { id:'e2', src:'exp', tgt:'out' },
+      { id:'e3', src:'u',   tgt:'exp' },
+      { id:'e4', src:'u',   tgt:'out' },
+    ],
+  },
+  {
+    id: 'timevary',
+    name: 'Time-Varying Confounding',
+    tag: 'Time-Varying',
+    color: '#3b7cf4',
+    description: 'When a time-varying covariate is both a confounder of the exposure-outcome relationship and is itself affected by prior exposure, standard regression adjustment introduces collider bias. G-methods (g-computation, IPTW, g-estimation) are required for valid estimation.',
+    refs: [
+      { title: 'A new approach to causal inference in mortality studies (G-computation)', cite: 'Robins · Math Modelling 1986', url: 'https://doi.org/10.1016/0270-0255(86)90088-6' },
+      { title: 'Marginal structural models and causal inference in epidemiology', cite: 'Robins, Hernán & Brumback · Epidemiology 2000', url: 'https://doi.org/10.1097/00001648-200009000-00011' },
+      { title: 'Causal Inference: What If (Ch. 19–21 — G-methods)', cite: 'Hernán & Robins · CRC Press 2020', url: 'https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/' },
+    ],
+    exposure: 'exp2', outcome: 'out',
+    nodes: [
+      { id:'exp1', label:'Exp (t1)', x:110, y:260, type:'exposure'   },
+      { id:'l',    label:'L (t2)',   x:260, y:180, type:'confounder' },
+      { id:'exp2', label:'Exp (t2)', x:260, y:320, type:'exposure'   },
+      { id:'out',  label:'Outcome',  x:440, y:260, type:'outcome'    },
+    ],
+    edges: [
+      { id:'e1', src:'exp1', tgt:'l'    },
+      { id:'e2', src:'exp1', tgt:'exp2' },
+      { id:'e3', src:'l',    tgt:'exp2' },
+      { id:'e4', src:'l',    tgt:'out'  },
+      { id:'e5', src:'exp2', tgt:'out'  },
+    ],
+  },
+  {
+    id: 'overadjust',
+    name: 'Over-adjustment',
+    tag: 'Over-adjustment',
+    color: '#e53e3e',
+    description: 'Adjusting for a variable on the causal path (a mediator or descendant of the exposure) blocks part of the causal effect, resulting in underestimation of the total effect. This is a common error in pharmacoepidemiology when including post-exposure variables as covariates.',
+    refs: [
+      { title: 'Overadjustment bias and unnecessary adjustment in epidemiologic studies', cite: 'Schisterman, Cole & Platt · Epidemiology 2009', url: 'https://doi.org/10.1097/EDE.0b013e3181a819a1' },
+      { title: 'The table 2 fallacy: presenting and interpreting confounder and modifier coefficients', cite: 'Westreich & Greenland · Am J Epidemiol 2013', url: 'https://doi.org/10.1093/aje/kws412' },
+      { title: 'Causal diagrams for epidemiologic research', cite: 'Greenland, Pearl & Robins · Epidemiology 1999', url: 'https://doi.org/10.1097/00001648-199901000-00008' },
+    ],
+    exposure: 'exp', outcome: 'out',
+    nodes: [
+      { id:'exp', label:'Exposure', x:130, y:260, type:'exposure'  },
+      { id:'bio', label:'Biomarker',x:300, y:260, type:'variable'  },
+      { id:'out', label:'Outcome',  x:470, y:260, type:'outcome'   },
+      { id:'con', label:'Covariate',x:300, y:140, type:'confounder'},
+    ],
+    edges: [
+      { id:'e1', src:'exp', tgt:'bio' },
+      { id:'e2', src:'bio', tgt:'out' },
+      { id:'e3', src:'exp', tgt:'out' },
+      { id:'e4', src:'con', tgt:'exp' },
+      { id:'e5', src:'con', tgt:'out' },
+    ],
+  },
+];
+
+// ─── Constants ─────────────────────────────────────────────────────────────
 
 const R = 30;
+
+const NODE_COLORS = {
+  exposure:   { fill:'#3b7cf4', stroke:'#2260d0' },
+  outcome:    { fill:'#0da271', stroke:'#0a7a55' },
+  confounder: { fill:'#e8972a', stroke:'#c07318' },
+  latent:     { fill:'#9aaac4', stroke:'#7a8fb0' },
+  variable:   { fill:'#8b5cf6', stroke:'#6d3fd6' },
+};
+
+const INIT_NODES = [
+  { id:'age', label:'Age',       x:140, y:190, type:'confounder' },
+  { id:'sex', label:'Sex',       x:140, y:340, type:'confounder' },
+  { id:'trt', label:'Treatment', x:390, y:265, type:'exposure'   },
+  { id:'out', label:'Outcome',   x:640, y:265, type:'outcome'    },
+  { id:'sev', label:'Severity',  x:390, y:120, type:'variable'   },
+];
+const INIT_EDGES = [
+  {id:'e1',src:'age',tgt:'trt'},{id:'e2',src:'age',tgt:'out'},
+  {id:'e3',src:'sex',tgt:'trt'},{id:'e4',src:'sex',tgt:'out'},
+  {id:'e5',src:'trt',tgt:'out'},
+  {id:'e6',src:'sev',tgt:'trt'},{id:'e7',src:'sev',tgt:'out'},
+];
+
+let _nid=50,_eid=50;
+const nuid=()=>`n${++_nid}_${Date.now()}`;
+const euid=()=>`e${++_eid}_${Date.now()}`;
 
 // ─── Reference Panel ───────────────────────────────────────────────────────
 
@@ -49,10 +358,9 @@ function RefPanel({ refs, accentColor }) {
   );
 }
 
-
 // ─── Main Component ─────────────────────────────────────────────────────────
 
-export default function App() {
+export default function DAGStudio() {
   const [view, setView]         = useState('studio'); // 'studio' | 'library'
   const [nodes, setNodes]       = useState(INIT_NODES);
   const [edges, setEdges]       = useState(INIT_EDGES);
@@ -71,6 +379,9 @@ export default function App() {
   const [summary, setSummary]   = useState('');
   const [summarizing, setSummarizing] = useState(false);
   const [summaryError, setSummaryError] = useState('');
+  const [apiKey, setApiKey]         = useState('');
+  const [apiKeyModal, setApiKeyModal] = useState(false);
+  const [apiKeyDraft, setApiKeyDraft] = useState('');
   const [exportMenu, setExportMenu] = useState(false);
   const [exportPreview, setExportPreview] = useState(null); // {dataURL, w, h, fmt}
   const [exporting, setExporting] = useState(false);
@@ -401,6 +712,7 @@ export default function App() {
 
   const generateSummary = async () => {
     if(!exposure||!outcome){setSummaryError('Set an exposure and outcome first.');return;}
+    if(!apiKey){setApiKeyModal(true);return;}
     setSummarizing(true); setSummary(''); setSummaryError('');
 
     const expLabel = nodes.find(n=>n.id===exposure)?.label||exposure;
@@ -429,7 +741,7 @@ Write a single paragraph (4–6 sentences) that: (1) describes the causal struct
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
-        headers:{'Content-Type':'application/json'},
+        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
         body:JSON.stringify({
           model:'claude-sonnet-4-20250514',
           max_tokens:1000,
@@ -490,6 +802,8 @@ Write a single paragraph (4–6 sentences) that: (1) describes the causal struct
         /* Top nav */
         .nav{height:46px;background:#fff;border-bottom:1.5px solid #dde4f0;display:flex;align-items:center;padding:0 16px;gap:0;flex-shrink:0;box-shadow:0 2px 8px rgba(30,42,64,.06)}
         .nav-spacer{flex:1}
+        .nav-key-btn{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;border:1.5px solid #dde4f0;background:#f5f8fd;cursor:pointer;color:#1e2a40;font-family:'IBM Plex Sans',sans-serif;font-size:10px;transition:all .15s;margin-right:8px}
+        .nav-key-btn:hover{border-color:#3b7cf4;background:#e8f0ff;color:#3b7cf4}
         .nav-proto{font-size:9px;font-weight:800;letter-spacing:.14em;color:#e53e3e;border:1.5px solid #e53e3e;border-radius:5px;padding:2px 7px;text-transform:uppercase;background:#fff5f5;user-select:none}
         .nav-brand{font-size:13px;font-weight:700;color:#1e2a40;letter-spacing:.02em;margin-right:24px}
         .nav-tab{padding:0 16px;height:46px;display:flex;align-items:center;font-size:12px;font-weight:600;border:none;background:transparent;cursor:pointer;color:#9aaac4;border-bottom:2.5px solid transparent;transition:all .15s;font-family:'IBM Plex Sans',sans-serif;margin-bottom:-1.5px}
@@ -519,6 +833,23 @@ Write a single paragraph (4–6 sentences) that: (1) describes the causal struct
         .sb{position:absolute;bottom:0;left:0;right:0;height:30px;padding:0 14px;background:rgba(255,255,255,.93);backdrop-filter:blur(10px);border-top:1.5px solid #dde4f0;display:flex;align-items:center;gap:14px;font-size:11px}
         .sb-dim{color:#9aaac4}
         @keyframes spin{to{transform:rotate(360deg)}}
+        /* API Key modal */
+        .apikey-modal-bg{position:fixed;inset:0;background:rgba(15,22,40,.5);backdrop-filter:blur(4px);z-index:600;display:flex;align-items:center;justify-content:center}
+        .apikey-modal{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(15,22,40,.25);width:480px;max-width:92vw;padding:28px}
+        .apikey-modal h3{margin:0 0 4px;font-size:15px;font-weight:700;color:#1e2a40}
+        .apikey-modal p{margin:0 0 16px;font-size:12px;color:#7a8fb0;line-height:1.6}
+        .apikey-input{width:100%;box-sizing:border-box;background:#f5f8fd;border:1.5px solid #dde4f0;border-radius:8px;padding:9px 12px;font-size:12px;font-family:'IBM Plex Mono',monospace;color:#1e2a40;outline:none;transition:border-color .15s;margin-bottom:6px}
+        .apikey-input:focus{border-color:#3b7cf4}
+        .apikey-hint{font-size:10px;color:#b0bcd4;margin-bottom:16px}
+        .apikey-hint a{color:#3b7cf4;text-decoration:none}
+        .apikey-hint a:hover{text-decoration:underline}
+        .apikey-actions{display:flex;gap:8px;justify-content:flex-end}
+        .apikey-cancel{padding:8px 16px;border-radius:8px;border:1.5px solid #dde4f0;background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;color:#9aaac4;transition:all .15s}
+        .apikey-cancel:hover{border-color:#9aaac4;color:#1e2a40}
+        .apikey-save{padding:8px 20px;border-radius:8px;border:none;background:#1e2a40;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:background .15s}
+        .apikey-save:hover{background:#3b7cf4}
+        .apikey-clear{padding:8px 14px;border-radius:8px;border:1.5px solid #ffd0d0;background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;color:#e53e3e;transition:all .15s;margin-right:auto}
+        .apikey-clear:hover{background:#fff5f5}
         /* Export preview modal */
         .exp-modal-bg{position:fixed;inset:0;background:rgba(15,22,40,.55);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center}
         .exp-modal{background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(15,22,40,.28);width:680px;max-width:94vw;display:flex;flex-direction:column;overflow:hidden;max-height:90vh}
@@ -567,6 +898,23 @@ Write a single paragraph (4–6 sentences) that: (1) describes the causal struct
         .sum-err{margin-top:8px;font-size:11px;color:#b91c1c;padding:7px 10px;background:#fff4f4;border-radius:7px;border:1.5px solid #f5b8b8}
         .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
         @keyframes spin{to{transform:rotate(360deg)}}
+        /* API Key modal */
+        .apikey-modal-bg{position:fixed;inset:0;background:rgba(15,22,40,.5);backdrop-filter:blur(4px);z-index:600;display:flex;align-items:center;justify-content:center}
+        .apikey-modal{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(15,22,40,.25);width:480px;max-width:92vw;padding:28px}
+        .apikey-modal h3{margin:0 0 4px;font-size:15px;font-weight:700;color:#1e2a40}
+        .apikey-modal p{margin:0 0 16px;font-size:12px;color:#7a8fb0;line-height:1.6}
+        .apikey-input{width:100%;box-sizing:border-box;background:#f5f8fd;border:1.5px solid #dde4f0;border-radius:8px;padding:9px 12px;font-size:12px;font-family:'IBM Plex Mono',monospace;color:#1e2a40;outline:none;transition:border-color .15s;margin-bottom:6px}
+        .apikey-input:focus{border-color:#3b7cf4}
+        .apikey-hint{font-size:10px;color:#b0bcd4;margin-bottom:16px}
+        .apikey-hint a{color:#3b7cf4;text-decoration:none}
+        .apikey-hint a:hover{text-decoration:underline}
+        .apikey-actions{display:flex;gap:8px;justify-content:flex-end}
+        .apikey-cancel{padding:8px 16px;border-radius:8px;border:1.5px solid #dde4f0;background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;color:#9aaac4;transition:all .15s}
+        .apikey-cancel:hover{border-color:#9aaac4;color:#1e2a40}
+        .apikey-save{padding:8px 20px;border-radius:8px;border:none;background:#1e2a40;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:background .15s}
+        .apikey-save:hover{background:#3b7cf4}
+        .apikey-clear{padding:8px 14px;border-radius:8px;border:1.5px solid #ffd0d0;background:transparent;font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;color:#e53e3e;transition:all .15s;margin-right:auto}
+        .apikey-clear:hover{background:#fff5f5}
         /* Export preview modal */
         .exp-modal-bg{position:fixed;inset:0;background:rgba(15,22,40,.55);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center}
         .exp-modal{background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(15,22,40,.28);width:680px;max-width:94vw;display:flex;flex-direction:column;overflow:hidden;max-height:90vh}
@@ -626,6 +974,18 @@ Write a single paragraph (4–6 sentences) that: (1) describes the causal struct
             Training Library
           </button>
           <div className="nav-spacer"/>
+          <button
+            className="nav-key-btn"
+            onClick={()=>{setApiKeyDraft(apiKey);setApiKeyModal(true);}}
+            title="Set Anthropic API Key"
+          >
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="8" cy="11" r="4"/>
+              <path d="M12 7l8 0M16 7v-2"/>
+            </svg>
+            {apiKey ? <span style={{color:'#0da271',fontSize:10,fontWeight:700}}>API Key ✓</span> : <span style={{fontSize:10,fontWeight:600}}>API Key</span>}
+          </button>
+          <div style={{width:1,height:18,background:'#dde4f0',margin:'0 10px'}}/>
           <div className="nav-proto">Prototype</div>
         </div>
 
@@ -895,6 +1255,46 @@ Write a single paragraph (4–6 sentences) that: (1) describes the causal struct
           <span style={{fontSize:10,color:'#b0bcd4',fontWeight:500}}>Black Swan Causal Labs, LLC</span>
         </div>
       </div>
+
+      {/* API Key Modal */}
+      {apiKeyModal && (
+        <div className="apikey-modal-bg" onClick={()=>setApiKeyModal(false)}>
+          <div className="apikey-modal" onClick={e=>e.stopPropagation()}>
+            <h3>Anthropic API Key</h3>
+            <p>
+              Your key is used directly in your browser to call the Anthropic API.
+              It is never stored, logged, or sent anywhere except Anthropic's servers.
+              It will be cleared when you close the tab.
+            </p>
+            <input
+              className="apikey-input"
+              type="password"
+              placeholder="sk-ant-..."
+              value={apiKeyDraft}
+              onChange={e=>setApiKeyDraft(e.target.value)}
+              onKeyDown={e=>{if(e.key==='Enter'){setApiKey(apiKeyDraft);setApiKeyModal(false);}}}
+              autoFocus
+            />
+            <div className="apikey-hint">
+              Don't have a key?{' '}
+              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">
+                Get one at console.anthropic.com →
+              </a>
+            </div>
+            <div className="apikey-actions">
+              {apiKey && (
+                <button className="apikey-clear" onClick={()=>{setApiKey('');setApiKeyDraft('');setApiKeyModal(false);}}>
+                  Remove Key
+                </button>
+              )}
+              <button className="apikey-cancel" onClick={()=>setApiKeyModal(false)}>Cancel</button>
+              <button className="apikey-save" onClick={()=>{setApiKey(apiKeyDraft);setApiKeyModal(false);}}>
+                Save Key
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Export Preview Modal */}
       {exportPreview && (
