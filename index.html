@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#ffffff"/>
 <title>DAG Studio · Black Swan Causal Labs</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js">
@@ -12,79 +16,142 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body,#root{height:100%;overflow:hidden}
-body{font-family:'Plus Jakarta Sans',sans-serif}
-.root{display:flex;flex-direction:column;height:100vh;background:#eef2f8;color:#1e2a40}
-.nav{height:50px;background:#fff;border-bottom:1.5px solid #dde4f0;display:flex;align-items:center;padding:0 18px;gap:0;flex-shrink:0;box-shadow:0 1px 0 #dde4f0,0 4px 12px rgba(30,42,64,.05)}
-.nav-brand{font-size:14px;font-weight:800;background:linear-gradient(135deg,#1e2a40 0%,#3b7cf4 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.01em;margin-right:24px}
-.nav-tab{padding:0 16px;height:50px;border:none;background:transparent;cursor:pointer;font-size:12px;font-weight:600;color:#9aaac4;font-family:'Plus Jakarta Sans',sans-serif;border-bottom:2px solid transparent;transition:all .15s}
-.nav-tab:hover{color:#3b7cf4}
-.nav-tab.on{color:#3b7cf4;border-bottom-color:#3b7cf4}
+html,body,#root{height:100%;overflow:hidden;-webkit-tap-highlight-color:transparent}
+body{font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+/* ─── CSS Variables for Theming ─── */
+:root{
+  --bg-primary:#eef2f8;--bg-secondary:#fff;--bg-tertiary:#fafbfd;--bg-canvas:#f5f7fb;
+  --border-primary:#dde4f0;--border-secondary:#eef2f8;
+  --text-primary:#1e2a40;--text-secondary:#7a8fb0;--text-muted:#9aaac4;
+  --accent:#3b7cf4;--accent-light:#e8f0ff;--accent-border:#aac4ff;
+  --success:#0da271;--success-bg:#f0faf6;--success-border:#b6e8d4;
+  --danger:#e53e3e;--danger-bg:#fff4f4;--danger-border:#f5b8b8;
+  --dot-color:#c8d3e8;
+  --shadow-sm:0 2px 8px rgba(30,42,64,.06);--shadow-md:0 4px 16px rgba(30,42,64,.1);
+  --glass-bg:rgba(255,255,255,.93);--glass-border:rgba(255,255,255,.6);
+}
+.dark{
+  --bg-primary:#0f1419;--bg-secondary:#1a1f2e;--bg-tertiary:#141820;--bg-canvas:#0d1117;
+  --border-primary:#2d3548;--border-secondary:#252b3b;
+  --text-primary:#e6edf3;--text-secondary:#8b949e;--text-muted:#6e7681;
+  --accent:#58a6ff;--accent-light:#1f3a5f;--accent-border:#388bfd;
+  --success:#3fb950;--success-bg:#1a2e1f;--success-border:#2d5a3a;
+  --danger:#f85149;--danger-bg:#3d1f1f;--danger-border:#6e3030;
+  --dot-color:#30363d;
+  --shadow-sm:0 2px 8px rgba(0,0,0,.3);--shadow-md:0 4px 16px rgba(0,0,0,.4);
+  --glass-bg:rgba(20,24,32,.93);--glass-border:rgba(45,53,72,.6);
+}
+
+.root{display:flex;flex-direction:column;height:100vh;background:var(--bg-primary);color:var(--text-primary)}
+.nav{height:50px;background:var(--bg-secondary);border-bottom:1.5px solid var(--border-primary);display:flex;align-items:center;padding:0 18px;gap:0;flex-shrink:0;box-shadow:0 1px 0 var(--border-primary),0 4px 12px rgba(30,42,64,.05)}
+.dark .nav{box-shadow:0 1px 0 var(--border-primary),0 4px 12px rgba(0,0,0,.2)}
+.nav-brand{font-size:14px;font-weight:800;background:linear-gradient(135deg,var(--text-primary) 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.01em;margin-right:24px}
+.nav-tab{padding:0 16px;height:50px;border:none;background:transparent;cursor:pointer;font-size:12px;font-weight:600;color:var(--text-muted);font-family:'Plus Jakarta Sans',sans-serif;border-bottom:2px solid transparent;transition:all .15s}
+.nav-tab:hover{color:var(--accent)}
+.nav-tab.on{color:var(--accent);border-bottom-color:var(--accent)}
 .nav-proto{margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#3b7cf4;border-radius:20px;padding:6px 14px;position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(255,255,255,0.7) 0%,rgba(240,245,255,0.5) 50%,rgba(255,255,255,0.6) 100%);backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);border:1px solid rgba(255,255,255,0.6);box-shadow:0 4px 16px rgba(59,124,244,0.12),0 1px 3px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9),inset 0 -1px 0 rgba(0,0,0,0.05),inset 2px 2px 8px rgba(255,255,255,0.6),inset -2px -2px 8px rgba(59,124,244,0.08);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);cursor:default}
+.dark .nav-proto{background:linear-gradient(135deg,rgba(30,40,60,0.7) 0%,rgba(20,30,50,0.5) 50%,rgba(30,40,60,0.6) 100%);border:1px solid rgba(88,166,255,0.3);color:#58a6ff}
 .nav-proto::before{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,0.5) 0%,transparent 100%);border-radius:20px 20px 0 0;pointer-events:none}
+.dark .nav-proto::before{background:linear-gradient(180deg,rgba(255,255,255,0.1) 0%,transparent 100%)}
 .nav-proto:hover{box-shadow:0 6px 24px rgba(59,124,244,0.18),0 2px 6px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,1),inset 0 -1px 0 rgba(0,0,0,0.08),inset 2px 2px 10px rgba(255,255,255,0.7),inset -2px -2px 10px rgba(59,124,244,0.12);transform:translateY(-1px) scale(1.02)}
 
+/* ─── Top Stats Bar ─── */
+.stats-bar{height:32px;background:var(--bg-secondary);border-bottom:1px solid var(--border-primary);display:flex;align-items:center;padding:0 18px;gap:16px;font-size:11px;flex-shrink:0}
+.stats-item{display:flex;align-items:center;gap:6px;color:var(--text-muted)}
+.stats-item strong{color:var(--text-primary);font-weight:600}
+.stats-item.accent{color:var(--accent)}
+.stats-item.success{color:var(--success)}
+.stats-item.danger{color:var(--danger)}
+.stats-sep{width:1px;height:14px;background:var(--border-primary)}
+.theme-toggle{margin-left:auto;display:flex;align-items:center;width:56px;height:28px;padding:3px;border-radius:14px;cursor:pointer;transition:background .3s,border-color .3s;background:#fff;border:1px solid #e5e7eb;position:relative;flex-shrink:0}
+.dark .theme-toggle{background:#1e2a40;border:1px solid #374151}
+.theme-toggle-thumb{position:absolute;display:flex;justify-content:center;align-items:center;width:22px;height:22px;border-radius:50%;transition:left .3s cubic-bezier(.4,0,.2,1);background:#e5e7eb;left:31px;z-index:2}
+.dark .theme-toggle-thumb{background:#374151;left:3px}
+.theme-toggle-icon{width:14px;height:14px}
+.theme-toggle-icons{display:flex;justify-content:space-between;align-items:center;width:100%;padding:0 6px}
+.theme-toggle-icon-wrap{display:flex;align-items:center;justify-content:center;width:16px;height:16px}
+
 .studio{flex:1;display:flex;overflow:hidden}
-.tb{width:54px;background:#fff;border-right:1.5px solid #dde4f0;display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px;flex-shrink:0;box-shadow:2px 0 10px rgba(30,42,64,.07)}
-.tb-btn{width:38px;height:38px;border-radius:9px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;background:transparent;color:#9aaac4}
+.tb{width:54px;background:var(--bg-secondary);border-right:1.5px solid var(--border-primary);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px;flex-shrink:0;box-shadow:2px 0 10px rgba(30,42,64,.07)}
+.dark .tb{box-shadow:2px 0 10px rgba(0,0,0,.2)}
+.tb-btn{width:38px;height:38px;border-radius:9px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;background:transparent;color:var(--text-muted)}
 .tb-btn svg{width:20px;height:20px}
-.tb-btn:hover{background:#f0f4ff;color:#3b7cf4}
-.tb-btn.on{background:#e8f0ff;color:#3b7cf4;box-shadow:0 0 0 1.5px #aac4ff inset}
-.tb-btn.era{background:#fff0f0;color:#e53e3e;box-shadow:0 0 0 1.5px #ffb0b0 inset}
-.tb-sep{width:22px;height:1px;background:#e8edf5;margin:6px 0}
+.tb-btn:hover{background:var(--accent-light);color:var(--accent)}
+.tb-btn.on{background:var(--accent-light);color:var(--accent);box-shadow:0 0 0 1.5px var(--accent-border) inset}
+.tb-btn.era{background:var(--danger-bg);color:var(--danger);box-shadow:0 0 0 1.5px var(--danger-border) inset}
+.tb-sep{width:22px;height:1px;background:var(--border-secondary);margin:6px 0}
 .cv{flex:1;position:relative;overflow:hidden}
 .cv.dragging,.cv.dragging *{cursor:grabbing!important}
-.sb{position:absolute;bottom:0;left:0;right:0;height:32px;padding:0 16px;background:rgba(255,255,255,.93);backdrop-filter:blur(10px);border-top:1.5px solid #dde4f0;display:flex;align-items:center;gap:16px;font-size:11px}
-.sb-dim{color:#9aaac4}.sb-info{color:#3b7cf4;font-weight:500}
-.pn{width:296px;background:#fafbfd;border-left:1.5px solid #dde4f0;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;box-shadow:-2px 0 10px rgba(30,42,64,.07)}
+.sb{position:absolute;bottom:0;left:0;right:0;height:32px;padding:0 16px;background:var(--glass-bg);backdrop-filter:blur(10px);border-top:1.5px solid var(--border-primary);display:flex;align-items:center;gap:16px;font-size:11px}
+.sb-dim{color:var(--text-muted)}.sb-info{color:var(--accent);font-weight:500}
+.pn{width:296px;background:var(--bg-tertiary);border-left:1.5px solid var(--border-primary);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;box-shadow:-2px 0 10px rgba(30,42,64,.07)}
+.dark .pn{box-shadow:-2px 0 10px rgba(0,0,0,.2)}
 .pn-scroll{flex:1;overflow-y:auto}
-.ps{padding:14px 16px;border-bottom:1px solid #eef2f8}
-.pt{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9aaac4;margin-bottom:10px}
-.fl{font-size:10.5px;color:#7a8fb0;margin-bottom:4px;font-weight:500}
-.sel{width:100%;background:#f5f8fd;border:1.5px solid #dde4f0;border-radius:7px;padding:6px 10px;font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;appearance:none;cursor:pointer;color:#1e2a40;font-weight:500;transition:border-color .15s;margin-bottom:0}
-.sel:focus{border-color:#93bbff;box-shadow:0 0 0 3px rgba(59,124,244,.1)}
-.sel.bl{color:#3b7cf4}.sel.gr{color:#0da271}
-.inp{width:100%;background:#f5f8fd;border:1.5px solid #dde4f0;border-radius:7px;padding:6px 10px;color:#1e2a40;font-size:12px;font-family:'IBM Plex Mono',monospace;outline:none;margin-bottom:8px;transition:border-color .15s}
-.inp:focus{border-color:#93bbff;box-shadow:0 0 0 3px rgba(59,124,244,.1)}
+.ps{padding:14px 16px;border-bottom:1px solid var(--border-secondary)}
+.pt{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.dark .pt{color:#fff}
+.fl{font-size:10.5px;color:var(--text-secondary);margin-bottom:4px;font-weight:500}
+.sel{width:100%;background:var(--bg-primary);border:1.5px solid var(--border-primary);border-radius:7px;padding:6px 10px;font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;appearance:none;cursor:pointer;color:var(--text-primary);font-weight:500;transition:border-color .15s;margin-bottom:0}
+.sel:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,124,244,.1)}
+.sel.bl{color:var(--accent)}.sel.gr{color:var(--success)}
+.inp{width:100%;background:var(--bg-primary);border:1.5px solid var(--border-primary);border-radius:7px;padding:6px 10px;color:var(--text-primary);font-size:12px;font-family:'IBM Plex Mono',monospace;outline:none;margin-bottom:8px;transition:border-color .15s}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,124,244,.1)}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
 .chip{padding:3px 9px;border-radius:5px;border:1.5px solid;font-size:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .12s;background:transparent;font-weight:500}
 .pi{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:5px 8px;border-radius:5px;margin-bottom:3px;line-height:1.55;word-break:break-all}
-.pd{background:#f0faf6;border:1.5px solid #b6e8d4;color:#0a7a55}
-.pb{background:#fff4f4;border:1.5px solid #f5b8b8;color:#b91c1c}
-.as{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 10px;border-radius:7px;margin-bottom:5px;background:#f0f5ff;border:1.5px solid #b8d0ff;color:#2558c4}
-.an{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 10px;border-radius:7px;background:#f0faf6;border:1.5px solid #b6e8d4;color:#0a7a55}
-.ai{font-size:11px;padding:7px 10px;border-radius:7px;background:#fff4f4;border:1.5px solid #f5b8b8;color:#b91c1c}
-.mn{font-size:10px;color:#9aaac4;margin-bottom:10px}
-.leg{padding:10px 16px;border-top:1px solid #eef2f8;display:flex;flex-wrap:wrap;gap:8px;flex-shrink:0}
-.li{display:flex;align-items:center;gap:5px;font-size:10px;color:#7a8fb0}
+.pd{background:var(--success-bg);border:1.5px solid var(--success-border);color:var(--success)}
+.pb{background:var(--danger-bg);border:1.5px solid var(--danger-border);color:var(--danger)}
+.as{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 10px;border-radius:7px;margin-bottom:5px;background:var(--accent-light);border:1.5px solid var(--accent-border);color:var(--accent)}
+.an{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 10px;border-radius:7px;background:var(--success-bg);border:1.5px solid var(--success-border);color:var(--success)}
+.ai{font-size:11px;padding:7px 10px;border-radius:7px;background:var(--danger-bg);border:1.5px solid var(--danger-border);color:var(--danger)}
+.mn{font-size:10px;color:var(--text-muted);margin-bottom:10px}
+.leg{padding:10px 16px;border-top:1px solid var(--border-secondary);display:flex;flex-wrap:wrap;gap:8px;flex-shrink:0}
+.li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-secondary)}
 .ld{width:8px;height:8px;border-radius:50%}
 .gen-btn{margin:14px 16px 2px;padding:9px 0;border-radius:9px;border:none;background:linear-gradient(135deg,#3b7cf4,#2260d0);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:opacity .15s;width:calc(100% - 32px)}
 .gen-btn:hover{opacity:.9}.gen-btn:disabled{opacity:.5;cursor:default}
-.exp-btn{padding:7px 14px;border-radius:7px;border:1.5px solid #dde4f0;background:#fff;color:#1e2a40;font-size:11px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .12s}
-.exp-btn:hover{border-color:#3b7cf4;color:#3b7cf4;background:#f0f5ff}
+.exp-btn{padding:7px 14px;border-radius:7px;border:1.5px solid var(--border-primary);background:var(--bg-secondary);color:var(--text-primary);font-size:11px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .12s}
+.exp-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
 .mbg{position:fixed;inset:0;background:rgba(30,42,64,.32);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(3px)}
-.mo{background:#fff;border:1.5px solid #dde4f0;border-radius:14px;padding:22px;width:290px;box-shadow:0 20px 50px rgba(30,42,64,.15)}
-.mh{font-size:15px;font-weight:700;color:#1e2a40;margin-bottom:14px}
+.dark .mbg{background:rgba(0,0,0,.5)}
+.mo{background:var(--bg-secondary);border:1.5px solid var(--border-primary);border-radius:14px;padding:22px;width:290px;box-shadow:0 20px 50px rgba(30,42,64,.15)}
+.dark .mo{box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.mh{font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:14px}
 .mac{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-.bc{padding:7px 16px;border-radius:8px;border:1.5px solid #dde4f0;background:transparent;color:#7a8fb0;cursor:pointer;font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:500;transition:all .12s}
-.bc:hover{border-color:#9aaac4;color:#1e2a40}
-.ba{padding:7px 18px;border-radius:8px;border:none;background:#3b7cf4;color:#fff;cursor:pointer;font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;transition:background .12s}
-.ba:hover{background:#2566e0}
-.lib{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;padding:28px;flex:1;overflow-y:auto;align-items:start}
-.lib-card{background:#fff;border:1.5px solid #dde4f0;border-radius:14px;display:flex;flex-direction:column;cursor:default;transition:box-shadow .15s}
-.lib-card:hover{box-shadow:0 8px 24px rgba(30,42,64,.1)}
+.bc{padding:7px 16px;border-radius:8px;border:1.5px solid var(--border-primary);background:transparent;color:var(--text-secondary);cursor:pointer;font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:500;transition:all .12s}
+.bc:hover{border-color:var(--text-muted);color:var(--text-primary)}
+.ba{padding:7px 18px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;transition:background .12s}
+.ba:hover{opacity:.9}
+.lib{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;padding:28px;flex:1;overflow-y:auto;align-items:start;background:var(--bg-primary)}
+.lib-card{background:var(--bg-secondary);border:1.5px solid var(--border-primary);border-radius:14px;display:flex;flex-direction:column;cursor:default;transition:box-shadow .15s}
+.lib-card:hover{box-shadow:var(--shadow-md)}
 .lib-card-head{padding:18px 18px 12px}
 .lib-tag{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:4px;margin-bottom:10px}
-.lib-name{font-size:14px;font-weight:700;color:#1e2a40;margin-bottom:8px;line-height:1.3}
-.lib-desc{font-size:12px;color:#4a5568;line-height:1.7;margin-bottom:0}
+.lib-name{font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:8px;line-height:1.3}
+.lib-desc{font-size:12px;color:var(--text-secondary);line-height:1.7;margin-bottom:0}
 .lib-refs{padding:0 18px 8px}
-.lib-load{display:block;width:100%;padding:11px 0;background:#f5f8fd;border:none;border-top:1.5px solid #dde4f0;font-size:12px;font-weight:700;color:#3b7cf4;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:background .12s;margin-top:auto}
-.lib-load:hover{background:#e8f0ff}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#dde4f0;border-radius:4px}
+.lib-load{display:block;width:100%;padding:11px 0;background:var(--bg-primary);border:none;border-top:1.5px solid var(--border-primary);font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:background .12s;margin-top:auto}
+.lib-load:hover{background:var(--accent-light)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border-primary);border-radius:4px}
 svg text{user-select:none;pointer-events:none}
+
+/* ─── Animations ─── */
 @keyframes spin-anim{to{transform:rotate(360deg)}}
 @keyframes glass-shimmer{0%,100%{transform:translateX(-50%)}50%{transform:translateX(50%)}}
+@keyframes path-flow{0%{stroke-dashoffset:24}100%{stroke-dashoffset:0}}
+@keyframes path-flow-reverse{0%{stroke-dashoffset:0}100%{stroke-dashoffset:24}}
 .spin{display:inline-block;animation:spin-anim 1s linear infinite}
+.path-animated{animation:path-flow .6s linear infinite}
+.path-animated-reverse{animation:path-flow-reverse .6s linear infinite}
+
+/* ─── Empty State ─── */
+.empty-state{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;max-width:320px}
+.empty-state-title{font-size:18px;font-weight:700;color:var(--text-primary)}
+.empty-state-desc{font-size:13px;color:var(--text-secondary);line-height:1.6}
+.empty-state-btn{padding:12px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),#2260d0);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s;box-shadow:0 4px 16px rgba(59,124,244,.3)}
+.empty-state-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(59,124,244,.4)}
+
 .fab-container{position:absolute;top:16px;left:16px;z-index:50;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
 .fab-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9aaac4;margin-bottom:2px;margin-left:4px}
 .fab-row{display:flex;align-items:center;gap:6px}
@@ -101,13 +168,214 @@ svg text{user-select:none;pointer-events:none}
 .fab-tool.era{background:#fff0f0;color:#e53e3e;border-color:#f5b8b8}
 .fab-tool.era:hover{background:#ffe8e8}
 .mob-panel-btn{display:none}
-@media(max-width:700px){
-  .nav{padding:0 12px}.nav-brand{font-size:13px;margin-right:10px}.nav-tab{padding:0 10px;font-size:11px}.nav-proto{display:none}
-  .fab-container{top:12px;left:12px}.fab-main{width:36px;height:36px}.fab-tool{width:32px;height:32px}.fab-tool svg{width:15px;height:15px}
-  .pn{position:absolute;bottom:0;left:0;right:0;width:100%;max-height:60vh;border-left:none;border-top:2px solid #dde4f0;border-radius:16px 16px 0 0;box-shadow:0 -8px 32px rgba(30,42,64,.12);z-index:200;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+
+/* ─── Mobile Layout (≤1024px OR landscape phones) ─── */
+@media(max-width:1024px), (max-width:900px) and (orientation:landscape){
+  .nav{padding:0 12px;height:48px}
+  .nav-brand{font-size:13px;margin-right:10px}
+  .nav-tab{padding:0 10px;font-size:11px;height:48px}
+  .nav-proto{display:none}
+  
+  .studio{flex-direction:column}
+  .tb{display:none}
+  
+  .fab-container{top:12px;left:12px}
+  .fab-label{display:none}
+  .fab-main{width:40px;height:40px;border-radius:12px}
+  .fab-main svg{width:18px;height:18px}
+  .fab-tool{width:36px;height:36px;border-radius:10px}
+  .fab-tool svg{width:16px;height:16px}
+  
+  .cv{flex:1;min-height:40vh}
+  .sb{height:28px;padding:0 12px;gap:10px;font-size:10px}
+  
+  .pn{position:absolute;bottom:0;left:0;right:0;width:100%;max-height:70vh;border-left:none;border-top:2px solid #dde4f0;border-radius:16px 16px 0 0;box-shadow:0 -8px 32px rgba(30,42,64,.12);z-index:200;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
   .pn.open{transform:translateY(0)}
-  .mob-panel-btn{display:flex;position:absolute;bottom:12px;right:12px;z-index:201;width:42px;height:42px;border-radius:50%;background:#1e2a40;color:#fff;border:none;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(30,42,64,.28);cursor:pointer;font-size:18px}
-  .lib{grid-template-columns:1fr!important;padding:16px!important}
+  .pn::before{content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);width:36px;height:4px;background:#dde4f0;border-radius:2px}
+  .pn-scroll{-webkit-overflow-scrolling:touch;padding-top:8px}
+  
+  .mob-panel-btn{display:flex;position:absolute;bottom:44px;right:12px;z-index:201;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1e2a40,#3b5068);color:#fff;border:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(30,42,64,.35);cursor:pointer;font-size:20px;transition:transform .15s}
+  .mob-panel-btn:active{transform:scale(0.95)}
+  
+  .ps{padding:12px 14px}
+  .pt{font-size:9px;margin-bottom:8px}
+  .fl{font-size:10px}
+  .sel,.inp{font-size:16px;padding:10px 12px;border-radius:8px}
+  .chips{gap:6px}
+  .chip{padding:6px 12px;font-size:11px;border-radius:6px}
+  
+  .gen-btn{padding:14px 0;font-size:14px;border-radius:10px;margin:12px 14px}
+  .exp-btn{padding:12px 16px;font-size:12px;border-radius:8px}
+  
+  .lib{grid-template-columns:1fr!important;padding:16px!important;gap:14px!important}
+  .lib-card-head{padding:14px 14px 10px}
+  .lib-name{font-size:15px}
+  .lib-desc{font-size:12px;line-height:1.6}
+  .lib-load{padding:14px 0;font-size:13px}
+  
+  .mbg{padding:12px!important;align-items:flex-end}
+  .mo{width:100%;max-width:none;border-radius:16px 16px 0 0;padding:20px;margin-bottom:0}
+  .mh{font-size:16px}
+}
+
+/* ─── Small Phone (≤480px) ─── */
+@media(max-width:480px){
+  .nav{height:44px;padding:0 10px}
+  .nav-brand{font-size:11px;margin-right:6px}
+  .nav-tab{padding:0 6px;font-size:9px;height:44px}
+  
+  .fab-container{top:8px;left:8px;gap:4px}
+  .fab-row{gap:4px}
+  .fab-main{width:36px;height:36px;border-radius:10px}
+  .fab-main svg{width:16px;height:16px}
+  .fab-tool{width:32px;height:32px;border-radius:8px}
+  .fab-tool svg{width:14px;height:14px}
+  
+  .cv{min-height:45vh}
+  .sb{height:26px;padding:0 10px;gap:8px;font-size:9px}
+  
+  .pn{max-height:80vh;border-radius:14px 14px 0 0}
+  .pn::before{width:32px;height:3px;top:6px}
+  
+  .mob-panel-btn{width:44px;height:44px;bottom:38px;right:10px;font-size:18px}
+  
+  .ps{padding:10px 12px}
+  .pt{font-size:8px;letter-spacing:.1em}
+  .fl{font-size:9px}
+  .sel,.inp{font-size:16px;padding:12px 14px}
+  .chips{gap:4px}
+  .chip{padding:8px 12px;font-size:11px}
+  
+  .gen-btn{padding:16px 0;font-size:15px;margin:10px 12px}
+  .exp-btn{padding:14px 18px;font-size:13px}
+  
+  .lib{padding:12px!important;gap:12px!important}
+  .lib-card{border-radius:12px}
+  .lib-card-head{padding:12px 12px 8px}
+  .lib-tag{font-size:8px;padding:3px 6px}
+  .lib-name{font-size:14px}
+  .lib-desc{font-size:11px}
+  .lib-load{padding:12px 0;font-size:12px}
+  
+  .mo{padding:16px;border-radius:14px 14px 0 0}
+  .mh{font-size:15px;margin-bottom:12px}
+  .mac{gap:6px}
+  .bc,.ba{padding:12px 16px;font-size:13px}
+}
+
+/* ─── Very Small Phone (≤360px) ─── */
+@media(max-width:360px){
+  .nav{height:40px;padding:0 8px}
+  .nav-brand{font-size:10px}
+  .nav-tab{padding:0 5px;font-size:8px;height:40px}
+  
+  .fab-main{width:32px;height:32px}
+  .fab-tool{width:28px;height:28px}
+  
+  .pn{max-height:85vh}
+  .mob-panel-btn{width:40px;height:40px;bottom:34px;right:8px}
+  
+  .sel,.inp{font-size:16px}
+  .chip{padding:6px 10px;font-size:10px}
+}
+
+/* ─── Landscape Phone (any orientation landscape with limited height) ─── */
+@media(orientation:landscape) and (max-height:500px){
+  .nav{height:36px}
+  .nav-tab{height:36px;font-size:9px}
+  .nav-brand{font-size:11px}
+  .pn{max-height:55vh}
+  .mob-panel-btn{width:36px;height:36px;bottom:8px;right:8px;font-size:14px}
+  .fab-main{width:32px;height:32px}
+  .fab-tool{width:28px;height:28px}
+  .cv{min-height:auto}
+  .sb{height:24px;font-size:9px}
+  .canvas-controls{bottom:28px!important}
+  .canvas-legend{bottom:56px!important;padding:3px 6px!important;gap:3px!important;cursor:pointer}
+  .canvas-legend .legend-item span{display:none}
+}
+
+/* ─── Touch-friendly improvements ─── */
+@media(hover:none) and (pointer:coarse){
+  .fab-tool:hover,.fab-main:hover,.exp-btn:hover,.gen-btn:hover,.lib-load:hover,.chip:hover,.nav-tab:hover{
+    transform:none;box-shadow:inherit
+  }
+  .fab-tool:active,.fab-main:active{transform:scale(0.95)}
+  .exp-btn:active,.gen-btn:active,.lib-load:active,.chip:active{opacity:0.7}
+}
+
+/* ─── Canvas Controls ─── */
+.canvas-controls{transition:all .2s}
+.canvas-legend{transition:all .2s}
+.cv-btn{transition:all .15s}
+.cv-btn:active{transform:scale(0.95);opacity:0.8}
+
+@media(max-width:1024px), (max-width:900px) and (orientation:landscape){
+  .canvas-controls{bottom:36px!important;left:10px!important;right:10px!important;gap:6px!important}
+  .canvas-controls .cv-btn{padding:8px 10px!important;font-size:9px!important;border-radius:6px!important}
+  .canvas-legend{bottom:72px!important;left:10px!important;right:auto!important;max-width:calc(100vw - 80px);padding:5px 10px!important;gap:8px!important;border-radius:6px!important;cursor:pointer}
+  .canvas-legend .legend-item{font-size:8px!important;gap:3px!important}
+  .canvas-legend .legend-item span{display:none}
+  .canvas-legend.collapsed{padding:6px 8px!important;gap:4px!important}
+  .canvas-legend.collapsed .legend-item{gap:2px!important}
+}
+@media(max-width:480px){
+  .canvas-controls{bottom:32px!important;left:8px!important;right:8px!important}
+  .canvas-controls .cv-btn{padding:10px 8px!important;font-size:9px!important}
+  .canvas-legend{bottom:66px!important;left:8px!important;padding:4px 8px!important;gap:6px!important;cursor:pointer}
+  .canvas-legend.collapsed{padding:5px 6px!important;gap:3px!important}
+}
+@media(max-width:360px){
+  .canvas-controls .cv-btn{padding:8px 6px!important;font-size:8px!important}
+  .canvas-legend{bottom:60px!important;left:6px!important;padding:4px 6px!important;gap:4px!important}
+  .canvas-legend.collapsed{padding:4px 5px!important}
+}
+.legend-expand-hint{display:none;font-size:8px;color:var(--text-muted);margin-left:2px}
+@media(max-width:1024px){.legend-expand-hint{display:inline}}
+.legend-modal{position:fixed;inset:0;background:rgba(30,42,64,.4);display:flex;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(3px)}
+.dark .legend-modal{background:rgba(0,0,0,.5)}
+.legend-modal-content{background:var(--bg-secondary);border:1.5px solid var(--border-primary);border-radius:14px;padding:20px;min-width:200px;max-width:90vw;box-shadow:0 20px 50px rgba(30,42,64,.2)}
+.dark .legend-modal-content{box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.legend-modal-title{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.legend-modal-close{background:none;border:none;font-size:20px;color:var(--text-muted);cursor:pointer;padding:0 4px;line-height:1}
+.legend-modal-items{display:flex;flex-direction:column;gap:10px}
+.legend-modal-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary)}
+
+/* ─── Validation View Responsive ─── */
+@media(max-width:1024px), (max-width:900px) and (orientation:landscape){
+  .validation-container{padding:16px 0!important}
+  .validation-inner{padding:0 16px!important;max-width:none!important}
+  .validation-header h1{font-size:18px!important}
+  .validation-intro{font-size:11px!important}
+}
+@media(max-width:480px){
+  .validation-container{padding:12px 0!important}
+  .validation-inner{padding:0 12px!important}
+  .validation-header h1{font-size:16px!important}
+  .validation-intro{font-size:10px!important}
+}
+
+/* ─── Modal Responsive ─── */
+@media(max-width:1024px), (max-width:900px) and (orientation:landscape){
+  .mbg>div{max-height:90vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch}
+}
+@media(max-width:480px){
+  .mbg{padding:0!important}
+  .mbg>div{width:100%!important;max-width:100%!important;border-radius:16px 16px 0 0!important;max-height:95vh!important}
+}
+
+/* ─── Safe area padding for notched phones ─── */
+@supports(padding: max(0px)){
+  @media(max-width:1024px){
+    .nav{padding-left:max(12px, env(safe-area-inset-left));padding-right:max(12px, env(safe-area-inset-right))}
+    .pn{padding-bottom:env(safe-area-inset-bottom)}
+    .mob-panel-btn{bottom:calc(44px + env(safe-area-inset-bottom))}
+    .canvas-controls{bottom:calc(36px + env(safe-area-inset-bottom))!important}
+    .canvas-legend{bottom:calc(72px + env(safe-area-inset-bottom))!important}
+    .sb{padding-bottom:env(safe-area-inset-bottom)}
+  }
+}
+  .chip{padding:4px 8px;font-size:9px}
 }
 </style>
 </head>
@@ -128,7 +396,8 @@ svg text{user-select:none;pointer-events:none}
 const {
   useState,
   useRef,
-  useEffect
+  useEffect,
+  useCallback
 } = React;
 
 // ─── Causal Inference Engine ────────────────────────────────────────────────
@@ -208,6 +477,283 @@ function computeAdjustmentSets(exp, out, nodes, edges) {
     backdoor: bkPaths,
     all: aPaths
   };
+}
+
+// ─── Data Simulation Engine ──────────────────────────────────────────────────
+
+function topoSort(nodes, edges) {
+  // Kahn's algorithm for topological sort
+  const inDegree = {};
+  const adj = {};
+  nodes.forEach(n => { inDegree[n.id] = 0; adj[n.id] = []; });
+  edges.forEach(e => {
+    if (adj[e.src]) adj[e.src].push(e.tgt);
+    if (inDegree[e.tgt] !== undefined) inDegree[e.tgt]++;
+  });
+  const queue = nodes.filter(n => inDegree[n.id] === 0).map(n => n.id);
+  const sorted = [];
+  while (queue.length) {
+    const cur = queue.shift();
+    sorted.push(cur);
+    for (const nb of (adj[cur] || [])) {
+      inDegree[nb]--;
+      if (inDegree[nb] === 0) queue.push(nb);
+    }
+  }
+  // If not all nodes sorted, there's a cycle – just return original order
+  return sorted.length === nodes.length ? sorted : nodes.map(n => n.id);
+}
+
+function boxMullerRandom() {
+  // Generate standard normal random number using Box-Muller transform
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function simulateData(nodes, edges, n = 1000, seed = null, coefficients = {}) {
+  // Save original Math.random
+  const originalRandom = Math.random;
+  
+  // Set seed for reproducibility (simple LCG)
+  if (seed !== null) {
+    let s = seed;
+    Math.random = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+  }
+  
+  const order = topoSort(nodes, edges);
+  const nodeMap = {};
+  nodes.forEach(nd => nodeMap[nd.id] = nd);
+  
+  // Build parent map
+  const parents = {};
+  nodes.forEach(nd => parents[nd.id] = []);
+  edges.forEach(e => {
+    if (parents[e.tgt]) parents[e.tgt].push(e.src);
+  });
+  
+  // Generate data
+  const data = [];
+  for (let i = 0; i < n; i++) {
+    const row = {};
+    for (const nodeId of order) {
+      const node = nodeMap[nodeId];
+      const pars = parents[nodeId];
+      if (pars.length === 0) {
+        // Root node: sample from N(0,1)
+        row[nodeId] = boxMullerRandom();
+      } else {
+        // Non-root: linear combination of parents + noise
+        let val = 0;
+        for (const p of pars) {
+          const edgeKey = `${p}->${nodeId}`;
+          const coef = coefficients[edgeKey] !== undefined ? coefficients[edgeKey] : 0.5;
+          val += coef * row[p];
+        }
+        val += boxMullerRandom() * 0.5; // Add noise
+        row[nodeId] = val;
+      }
+    }
+    data.push(row);
+  }
+  
+  // Restore original Math.random
+  Math.random = originalRandom;
+  
+  return { data, order };
+}
+
+function computeCorrelation(x, y) {
+  const n = x.length;
+  const meanX = x.reduce((a, b) => a + b, 0) / n;
+  const meanY = y.reduce((a, b) => a + b, 0) / n;
+  let num = 0, denX = 0, denY = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = x[i] - meanX;
+    const dy = y[i] - meanY;
+    num += dx * dy;
+    denX += dx * dx;
+    denY += dy * dy;
+  }
+  return num / Math.sqrt(denX * denY);
+}
+
+function computePartialCorrelation(data, x, y, Z) {
+  // Partial correlation of X and Y controlling for Z using residuals
+  if (Z.length === 0) {
+    const xVals = data.map(r => r[x]);
+    const yVals = data.map(r => r[y]);
+    return computeCorrelation(xVals, yVals);
+  }
+  
+  // Simple linear regression residuals approach
+  const n = data.length;
+  const xVals = data.map(r => r[x]);
+  const yVals = data.map(r => r[y]);
+  const zMatrix = data.map(r => Z.map(z => r[z]));
+  
+  // Residualize X on Z
+  const xResid = residualize(xVals, zMatrix);
+  // Residualize Y on Z
+  const yResid = residualize(yVals, zMatrix);
+  
+  return computeCorrelation(xResid, yResid);
+}
+
+function residualize(y, X) {
+  // Simple OLS residuals: y - X * (X'X)^-1 * X'y
+  const n = y.length;
+  if (X[0].length === 0) return y;
+  
+  const k = X[0].length;
+  
+  // Add intercept
+  const Xaug = X.map(row => [1, ...row]);
+  const ka = k + 1;
+  
+  // X'X
+  const XtX = Array(ka).fill(null).map(() => Array(ka).fill(0));
+  for (let i = 0; i < ka; i++) {
+    for (let j = 0; j < ka; j++) {
+      for (let r = 0; r < n; r++) {
+        XtX[i][j] += Xaug[r][i] * Xaug[r][j];
+      }
+    }
+  }
+  
+  // X'y
+  const Xty = Array(ka).fill(0);
+  for (let i = 0; i < ka; i++) {
+    for (let r = 0; r < n; r++) {
+      Xty[i] += Xaug[r][i] * y[r];
+    }
+  }
+  
+  // Solve using simple Gaussian elimination (for small k)
+  const beta = solveLinear(XtX, Xty);
+  if (!beta) return y; // fallback
+  
+  // Compute residuals
+  const resid = [];
+  for (let r = 0; r < n; r++) {
+    let pred = 0;
+    for (let i = 0; i < ka; i++) pred += beta[i] * Xaug[r][i];
+    resid.push(y[r] - pred);
+  }
+  return resid;
+}
+
+function solveLinear(A, b) {
+  // Gaussian elimination with partial pivoting
+  const n = A.length;
+  const M = A.map((row, i) => [...row, b[i]]);
+  
+  for (let col = 0; col < n; col++) {
+    // Find pivot
+    let maxRow = col;
+    for (let row = col + 1; row < n; row++) {
+      if (Math.abs(M[row][col]) > Math.abs(M[maxRow][col])) maxRow = row;
+    }
+    [M[col], M[maxRow]] = [M[maxRow], M[col]];
+    
+    if (Math.abs(M[col][col]) < 1e-10) return null;
+    
+    // Eliminate
+    for (let row = col + 1; row < n; row++) {
+      const f = M[row][col] / M[col][col];
+      for (let j = col; j <= n; j++) M[row][j] -= f * M[col][j];
+    }
+  }
+  
+  // Back substitution
+  const x = Array(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    x[i] = M[i][n];
+    for (let j = i + 1; j < n; j++) x[i] -= M[i][j] * x[j];
+    x[i] /= M[i][i];
+  }
+  return x;
+}
+
+function dataToCSV(data, order, nodeMap) {
+  const headers = order.map(id => nodeMap[id]?.label || id);
+  const rows = data.map(row => order.map(id => row[id].toFixed(4)));
+  return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+}
+
+function computeOLSCoefficients(data, yVar, xVars) {
+  // Returns coefficients for regression Y ~ X1 + X2 + ... + Xk
+  // Returns array: [intercept, beta_X1, beta_X2, ...]
+  const n = data.length;
+  const k = xVars.length;
+  
+  // Build design matrix with intercept
+  const X = data.map(row => [1, ...xVars.map(v => row[v])]);
+  const y = data.map(row => row[yVar]);
+  const ka = k + 1;
+  
+  // X'X
+  const XtX = Array(ka).fill(null).map(() => Array(ka).fill(0));
+  for (let i = 0; i < ka; i++) {
+    for (let j = 0; j < ka; j++) {
+      for (let r = 0; r < n; r++) {
+        XtX[i][j] += X[r][i] * X[r][j];
+      }
+    }
+  }
+  
+  // X'y
+  const Xty = Array(ka).fill(0);
+  for (let i = 0; i < ka; i++) {
+    for (let r = 0; r < n; r++) {
+      Xty[i] += X[r][i] * y[r];
+    }
+  }
+  
+  // Solve for beta
+  const beta = solveLinear(XtX, Xty);
+  return beta;
+}
+
+function computeTrueEffect(exposure, outcome, edges, coefficients = {}) {
+  // Compute the true total causal effect by summing all directed paths
+  // For a linear SEM, total effect = sum of products of edge coefficients along all directed paths
+  
+  // Build adjacency list
+  const adj = {};
+  const edgeCoefs = {};
+  edges.forEach(e => {
+    if (!adj[e.src]) adj[e.src] = [];
+    adj[e.src].push(e.tgt);
+    const key = `${e.src}->${e.tgt}`;
+    edgeCoefs[key] = coefficients[key] !== undefined ? coefficients[key] : 0.5;
+  });
+  
+  // Find all directed paths from exposure to outcome using DFS
+  const allPaths = [];
+  const dfs = (cur, path, coefProduct) => {
+    if (cur === outcome) {
+      allPaths.push({ path: [...path], coef: coefProduct });
+      return;
+    }
+    if (path.length > 20) return; // prevent infinite loops
+    for (const next of (adj[cur] || [])) {
+      if (!path.includes(next)) {
+        const edgeKey = `${cur}->${next}`;
+        const edgeCoef = edgeCoefs[edgeKey];
+        path.push(next);
+        dfs(next, path, coefProduct * edgeCoef);
+        path.pop();
+      }
+    }
+  };
+  
+  dfs(exposure, [exposure], 1);
+  
+  // Sum all path coefficients
+  const totalEffect = allPaths.reduce((sum, p) => sum + p.coef, 0);
+  return { totalEffect, paths: allPaths };
 }
 
 // ─── Education Library ────────────────────────────────────────────────────────
@@ -1730,13 +2276,16 @@ function ValidationView() {
     byCategory[cat] = results.filter(r => r.category === cat);
   });
   return /*#__PURE__*/React.createElement("div", {
+    className: "validation-container",
     style: {
       flex: 1,
       overflowY: 'auto',
       padding: '28px 0',
-      background: '#f4f6fa'
+      background: '#f4f6fa',
+      WebkitOverflowScrolling: 'touch'
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "validation-inner",
     style: {
       maxWidth: 820,
       margin: '0 auto',
@@ -2131,7 +2680,18 @@ function ValidationView() {
       lineHeight: 1.7,
       textAlign: 'center'
     }
-  }, "Validation suite \xB7 DAG Studio v0.1.0 \xB7 Black Swan Causal Labs, LLC \xB7 John D. Diaz-Decaro, PhD, MS"))));
+  }, "Validation suite \xB7 DAG Studio v0.1.0 \xB7 Black Swan Causal Labs, LLC \xB7 ", /*#__PURE__*/React.createElement("a", {
+    href: "https://www.linkedin.com/in/jdiazdecaro/",
+    target: "_blank",
+    rel: "noopener noreferrer",
+    style: {
+      color: '#b0bcd4',
+      textDecoration: 'none',
+      transition: 'color 0.15s'
+    },
+    onMouseEnter: e => e.target.style.color = '#0a66c2',
+    onMouseLeave: e => e.target.style.color = '#b0bcd4'
+  }, "John D. Diaz-Decaro, PhD, MS")))));
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -2183,6 +2743,7 @@ function DAGStudio() {
   const [fabOpen, setFabOpen] = useState(false);
   const [hoveredNode, setHoveredNode] = useState(null);
   const [showLegend, setShowLegend] = useState(true);
+  const [legendExpanded, setLegendExpanded] = useState(false);
 
   const [edgeBendDrag, setEdgeBendDrag] = useState(null);
   const [mouse, setMouse] = useState({
@@ -2209,8 +2770,86 @@ function DAGStudio() {
     causalSummary: false,
     adjGuidance: false,
     export: false,
-    poweredByAI: true
+    poweredByAI: true,
+    simulation: false
   });
+  
+  // Simulation state
+  const [simSampleSize, setSimSampleSize] = useState(1000);
+  const [simSeed, setSimSeed] = useState(42);
+  const [simData, setSimData] = useState(null);
+  const [simPreview, setSimPreview] = useState(false);
+  
+  // Dark mode state
+  const [darkMode, setDarkMode] = useState(false);
+  
+  // Path animation state (which path indices to animate)
+  const [animatedPaths, setAnimatedPaths] = useState(new Set());
+  
+  // Apply dark mode class to root
+  React.useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+  
+  // Viewport transform state for pan/zoom
+  const [viewTransform, setViewTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0, vx: 0, vy: 0 });
+  
+  // Helper to check if on mobile
+  const isMobile = () => typeof window !== 'undefined' && window.innerWidth <= 1024;
+  
+  // Fit DAG to viewport with proper scaling and centering
+  const fitToView = useCallback((targetNodes = null, animate = false) => {
+    const nodesToFit = targetNodes || nodes;
+    if (!nodesToFit.length || !svgRef.current) return;
+    
+    const r = svgRef.current.getBoundingClientRect();
+    const svgW = r.width;
+    const svgH = r.height - 80; // Account for status bar and controls
+    
+    if (svgW <= 0 || svgH <= 0) return;
+    
+    const xs = nodesToFit.map(n => n.x);
+    const ys = nodesToFit.map(n => n.y);
+    const minX = Math.min(...xs) - 60;
+    const maxX = Math.max(...xs) + 60;
+    const minY = Math.min(...ys) - 40;
+    const maxY = Math.max(...ys) + 40;
+    
+    const dagW = maxX - minX;
+    const dagH = maxY - minY;
+    
+    const dagCx = (minX + maxX) / 2;
+    const dagCy = (minY + maxY) / 2;
+    
+    // Calculate scale to fit with padding
+    const padding = isMobile() ? 30 : 50;
+    const availW = svgW - padding * 2;
+    const availH = svgH - padding * 2;
+    
+    let scale = Math.min(availW / dagW, availH / dagH, 1.2);
+    scale = Math.max(0.3, Math.min(scale, 1.5)); // Clamp scale
+    
+    // Move nodes to center in viewport (scaled space)
+    const targetCx = svgW / 2;
+    const targetCy = svgH / 2 + 20;
+    
+    const offsetX = targetCx - dagCx * scale;
+    const offsetY = targetCy - dagCy * scale;
+    
+    setViewTransform({ x: offsetX, y: offsetY, scale });
+  }, [nodes]);
+  
+  // Reset view transform when switching to studio view or loading new DAG
+  const resetViewTransform = useCallback(() => {
+    setViewTransform({ x: 0, y: 0, scale: 1 });
+  }, []);
+  
   const buildDagFromQuestion = async (question) => {
     if (!question.trim()) return;
     setDagBuilding(true);
@@ -2281,11 +2920,19 @@ function DAGStudio() {
     window.addEventListener('mouseup', onWinUp);
     return () => { window.removeEventListener('mousemove', onWinMove); window.removeEventListener('mouseup', onWinUp); };
   });
-  // Center nodes on first mount
+  // Center/fit nodes on first mount
   React.useEffect(() => {
     if (!svgRef.current) return;
     const r = svgRef.current.getBoundingClientRect();
     if (!r.width || !r.height) return;
+    
+    // On mobile, use fitToView for proper scaling
+    if (isMobile() && nodes.length > 0) {
+      setTimeout(() => fitToView(), 50);
+      return;
+    }
+    
+    // On desktop, just center without scaling
     const charW = 7.5, padX = 14, minW = 56;
     _setNodes(prev => {
       const xs = prev.flatMap(n => { const hw = Math.max(minW, n.label.length*charW+padX*2)/2; return [n.x-hw, n.x+hw]; });
@@ -2295,6 +2942,27 @@ function DAGStudio() {
       return prev.map(n => ({ ...n, x: n.x - cx + r.width/2, y: n.y - cy + r.height/2 }));
     });
   }, []);
+  
+  // Handle window resize - refit on mobile
+  React.useEffect(() => {
+    let resizeTimeout;
+    const handleResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (isMobile() && nodes.length > 0 && view === 'studio') {
+          fitToView();
+        }
+      }, 200);
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      clearTimeout(resizeTimeout);
+    };
+  }, [nodes, view, fitToView]);
+  
   useEffect(() => {
     setAnalysis(computeAdjustmentSets(exposure, outcome, nodes, edges));
     setAiAnalysis(null);
@@ -2308,9 +2976,12 @@ function DAGStudio() {
     if (!svgRef.current) return { x: 0, y: 0 };
     const r = svgRef.current.getBoundingClientRect();
     const src = e.touches ? e.touches[0] : e;
+    // Convert screen coordinates to canvas coordinates accounting for transform
+    const screenX = src.clientX - r.left;
+    const screenY = src.clientY - r.top;
     return {
-      x: src.clientX - r.left,
-      y: src.clientY - r.top
+      x: (screenX - viewTransform.x) / viewTransform.scale,
+      y: (screenY - viewTransform.y) / viewTransform.scale
     };
   };
   const onSVGMouseMove = e => {
@@ -2335,8 +3006,32 @@ function DAGStudio() {
         bend: Math.round(bend)
       } : ed));
     }
+    // Middle-click pan
+    if (isPanning && e.buttons === 4) {
+      const rect = svgRef.current.getBoundingClientRect();
+      const currentX = e.clientX - rect.left;
+      const currentY = e.clientY - rect.top;
+      setViewTransform(prev => ({
+        ...prev,
+        x: panStart.vx + (currentX - panStart.x),
+        y: panStart.vy + (currentY - panStart.y)
+      }));
+    }
   };
   const onSVGMouseDown = e => {
+    // Middle-click starts pan
+    if (e.button === 1) {
+      e.preventDefault();
+      const rect = svgRef.current.getBoundingClientRect();
+      setIsPanning(true);
+      setPanStart({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        vx: viewTransform.x,
+        vy: viewTransform.y
+      });
+      return;
+    }
     const tag = e.target.tagName;
     if (tag === 'svg' || tag === 'rect') {
       if (tool === 'node') {
@@ -2349,7 +3044,10 @@ function DAGStudio() {
       }
     }
   };
-  const onSVGMouseUp = () => {
+  const onSVGMouseUp = e => {
+    if (e && e.button === 1) {
+      setIsPanning(false);
+    }
     setDrag(null);
     setEdgeBendDrag(null);
   };
@@ -2412,6 +3110,13 @@ function DAGStudio() {
     setEdgeSrc(null);
     setAiAnalysis(null);
     setView('studio');
+    
+    // Auto-fit to view after DOM updates, especially important on mobile
+    setTimeout(() => {
+      if (lib.nodes && lib.nodes.length > 0) {
+        fitToView(lib.nodes);
+      }
+    }, 100);
   };
   const nodeRect = node => {
     const charW = 7.5, padX = 14, minW = 56;
@@ -2637,7 +3342,7 @@ function DAGStudio() {
 
       const svgStr = new XMLSerializer().serializeToString(clone);
       const PATH_ENTRIES = [
-        { label: 'Causal path', color: '#3b7cf4', dash: false },
+        { label: 'Causal path', color: '#16a34a', dash: false },
         { label: 'Backdoor path', color: '#e05555', dash: true }
       ];
       const legItems = presentTypes.length + (withLeg ? 1 : 0) + PATH_ENTRIES.length; // separator row counts as 1
@@ -2860,7 +3565,7 @@ function DAGStudio() {
     }))
   };
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "root"
+    className: `root${darkMode ? ' dark' : ''}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "nav"
   }, /*#__PURE__*/React.createElement("div", {
@@ -2882,7 +3587,79 @@ function DAGStudio() {
       marginLeft: 'auto',
       boxShadow: '0 2px 4px rgba(220, 38, 38, 0.3)'
     }
-  }, "Prototype")), view === 'validation' && /*#__PURE__*/React.createElement(ValidationView, null), view === 'library' && /*#__PURE__*/React.createElement("div", {
+  }, "Prototype")),
+  
+  // Stats Bar (only show in studio view)
+  view === 'studio' && /*#__PURE__*/React.createElement("div", {
+    className: "stats-bar"
+  },
+    /*#__PURE__*/React.createElement("span", { className: "stats-item" },
+      /*#__PURE__*/React.createElement("strong", null, nodes.length), " nodes"
+    ),
+    /*#__PURE__*/React.createElement("span", { className: "stats-sep" }),
+    /*#__PURE__*/React.createElement("span", { className: "stats-item" },
+      /*#__PURE__*/React.createElement("strong", null, edges.length), " edges"
+    ),
+    analysis && analysis.backdoor.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null,
+      /*#__PURE__*/React.createElement("span", { className: "stats-sep" }),
+      /*#__PURE__*/React.createElement("span", { className: "stats-item danger" },
+        /*#__PURE__*/React.createElement("strong", null, analysis.backdoor.length), " backdoor path", analysis.backdoor.length !== 1 ? 's' : ''
+      )
+    ),
+    analysis && analysis.sets && analysis.sets.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null,
+      /*#__PURE__*/React.createElement("span", { className: "stats-sep" }),
+      /*#__PURE__*/React.createElement("span", { className: "stats-item success" }, "Identified")
+    ),
+    viewTransform.scale !== 1 && /*#__PURE__*/React.createElement(React.Fragment, null,
+      /*#__PURE__*/React.createElement("span", { className: "stats-sep" }),
+      /*#__PURE__*/React.createElement("span", { className: "stats-item accent" }, Math.round(viewTransform.scale * 100), "%")
+    ),
+    /*#__PURE__*/React.createElement("div", {
+      className: "theme-toggle",
+      onClick: () => setDarkMode(d => !d),
+      role: "button",
+      tabIndex: 0,
+      title: darkMode ? "Switch to light mode" : "Switch to dark mode"
+    },
+      // Both icons in background
+      /*#__PURE__*/React.createElement("div", { className: "theme-toggle-icons" },
+        // Moon icon (left side) - dimmed in light mode, hidden in dark (thumb covers it)
+        /*#__PURE__*/React.createElement("div", { className: "theme-toggle-icon-wrap" },
+          /*#__PURE__*/React.createElement("svg", { 
+            className: "theme-toggle-icon", 
+            style: { opacity: darkMode ? 0 : 0.4 },
+            viewBox: "0 0 24 24", fill: "none", stroke: "#9ca3af", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" 
+          },
+            /*#__PURE__*/React.createElement("path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" })
+          )
+        ),
+        // Sun icon (right side) - dimmed in dark mode, hidden in light (thumb covers it)
+        /*#__PURE__*/React.createElement("div", { className: "theme-toggle-icon-wrap" },
+          /*#__PURE__*/React.createElement("svg", { 
+            className: "theme-toggle-icon", 
+            style: { opacity: darkMode ? 0.4 : 0 },
+            viewBox: "0 0 24 24", fill: "none", stroke: "#6b7280", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" 
+          },
+            /*#__PURE__*/React.createElement("circle", { cx: 12, cy: 12, r: 4 }),
+            /*#__PURE__*/React.createElement("path", { d: "M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" })
+          )
+        )
+      ),
+      // Sliding thumb with active icon
+      /*#__PURE__*/React.createElement("div", { className: "theme-toggle-thumb" },
+        darkMode
+          ? /*#__PURE__*/React.createElement("svg", { className: "theme-toggle-icon", viewBox: "0 0 24 24", fill: "none", stroke: "#fff", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" },
+              /*#__PURE__*/React.createElement("path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" })
+            )
+          : /*#__PURE__*/React.createElement("svg", { className: "theme-toggle-icon", viewBox: "0 0 24 24", fill: "none", stroke: "#374151", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" },
+              /*#__PURE__*/React.createElement("circle", { cx: 12, cy: 12, r: 4 }),
+              /*#__PURE__*/React.createElement("path", { d: "M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" })
+            )
+      )
+    )
+  ),
+  
+  view === 'validation' && /*#__PURE__*/React.createElement(ValidationView, null), view === 'library' && /*#__PURE__*/React.createElement("div", {
     className: "lib"
   }, LIBRARY.map(lib => /*#__PURE__*/React.createElement("div", {
     key: lib.id,
@@ -2948,110 +3725,240 @@ function DAGStudio() {
   )))))), /*#__PURE__*/React.createElement("button", {
     className: "mob-panel-btn",
     onClick: () => setMobilePanel(p => !p)
-  }, mobilePanel ? '×' : '⚙'), /*#__PURE__*/React.createElement("svg", {
+  }, mobilePanel ? '×' : '⚙'),
+  
+  // Empty State - shown when no nodes
+  nodes.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "empty-state"
+  },
+    /*#__PURE__*/React.createElement("svg", { width: 64, height: 64, viewBox: "0 0 64 64", fill: "none" },
+      /*#__PURE__*/React.createElement("circle", { cx: 16, cy: 32, r: 10, stroke: "var(--accent)", strokeWidth: 2.5, fill: "var(--accent-light)" }),
+      /*#__PURE__*/React.createElement("circle", { cx: 48, cy: 32, r: 10, stroke: "var(--success)", strokeWidth: 2.5, fill: "var(--success-bg)" }),
+      /*#__PURE__*/React.createElement("line", { x1: 26, y1: 32, x2: 38, y2: 32, stroke: "var(--text-muted)", strokeWidth: 2, strokeDasharray: "4 2" }),
+      /*#__PURE__*/React.createElement("polygon", { points: "38,28 44,32 38,36", fill: "var(--text-muted)" })
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "empty-state-title" }, "Build Your Causal DAG"),
+    /*#__PURE__*/React.createElement("div", { className: "empty-state-desc" },
+      "Create a directed acyclic graph to identify confounders, analyze backdoor paths, and determine valid adjustment sets."
+    ),
+    /*#__PURE__*/React.createElement("button", {
+      className: "empty-state-btn",
+      onClick: () => {
+        setFabOpen(true);
+        setTool('node');
+      }
+    }, "Build from scratch")
+  ),
+  
+  /*#__PURE__*/React.createElement("svg", {
     ref: svgRef,
     width: "100%",
     height: "100%",
     onMouseMove: onSVGMouseMove,
     onMouseDown: onSVGMouseDown,
     onMouseUp: onSVGMouseUp,
+    onWheel: e => {
+      e.preventDefault();
+      const rect = svgRef.current.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      // Calculate zoom
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      const newScale = Math.max(0.3, Math.min(2.5, viewTransform.scale * zoomFactor));
+      
+      // Zoom towards mouse position
+      const scaleChange = newScale / viewTransform.scale;
+      const newX = mouseX - (mouseX - viewTransform.x) * scaleChange;
+      const newY = mouseY - (mouseY - viewTransform.y) * scaleChange;
+      
+      setViewTransform({ x: newX, y: newY, scale: newScale });
+    },
+    onContextMenu: e => e.preventDefault(),
 
     onTouchMove: e => {
-      e.preventDefault();
-      onSVGMouseMove(e);
+      // Two-finger pan and pinch-to-zoom
+      if (e.touches.length === 2 && isPanning) {
+        e.preventDefault();
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        
+        // Calculate center of two fingers
+        const centerX = (t1.clientX + t2.clientX) / 2;
+        const centerY = (t1.clientY + t2.clientY) / 2;
+        
+        // Calculate current distance between fingers
+        const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        
+        // Pan offset from initial position
+        const dx = centerX - panStart.x;
+        const dy = centerY - panStart.y;
+        
+        // Zoom based on pinch distance change
+        if (panStart.initialDist) {
+          const scaleChange = currentDist / panStart.initialDist;
+          const newScale = Math.max(0.3, Math.min(2.5, panStart.initialScale * scaleChange));
+          
+          setViewTransform({
+            x: panStart.vx + dx,
+            y: panStart.vy + dy,
+            scale: newScale
+          });
+        } else {
+          setViewTransform(prev => ({
+            ...prev,
+            x: panStart.vx + dx,
+            y: panStart.vy + dy
+          }));
+        }
+        return;
+      }
+      // Single finger - normal behavior
+      if (e.touches.length === 1 && !isPanning) {
+        e.preventDefault();
+        onSVGMouseMove(e);
+      }
     },
     onTouchStart: e => {
-      e.preventDefault();
-      onSVGMouseDown(e);
+      // Two-finger gesture starts pan/zoom mode
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        setIsPanning(true);
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const centerX = (t1.clientX + t2.clientX) / 2;
+        const centerY = (t1.clientY + t2.clientY) / 2;
+        const initialDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        setPanStart({
+          x: centerX,
+          y: centerY,
+          vx: viewTransform.x,
+          vy: viewTransform.y,
+          initialDist: initialDist,
+          initialScale: viewTransform.scale
+        });
+        return;
+      }
+      // Single finger - normal behavior
+      if (e.touches.length === 1 && !isPanning) {
+        e.preventDefault();
+        onSVGMouseDown(e);
+      }
     },
     onTouchEnd: e => {
-      e.preventDefault();
-      onSVGMouseUp();
+      if (e.touches.length < 2) {
+        setIsPanning(false);
+      }
+      if (e.touches.length === 0 && !isPanning) {
+        e.preventDefault();
+        onSVGMouseUp();
+      }
     },
     style: {
       touchAction: 'none',
       userSelect: 'none'
     }
-  }, /*#__PURE__*/React.createElement("g", { transform: "translate(0,0)" }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("marker", {
-    id: "arr",
-    markerWidth: "8",
-    markerHeight: "8",
-    refX: "6",
-    refY: "3",
-    orient: "auto"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M0,0 L0,6 L8,3 z",
-    fill: "#9aaac4"
-  })), /*#__PURE__*/React.createElement("marker", {
-    id: "arr-bk",
-    markerWidth: "8",
-    markerHeight: "8",
-    refX: "6",
-    refY: "3",
-    orient: "auto"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M0,0 L0,6 L8,3 z",
-    fill: "#e53e3e"
-  })), /*#__PURE__*/React.createElement("marker", {
-    id: "arr-causal",
-    markerWidth: "8",
-    markerHeight: "8",
-    refX: "6",
-    refY: "3",
-    orient: "auto"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M0,0 L0,6 L8,3 z",
-    fill: "#16a34a"
-  })), Object.entries(NODE_COLORS).map(([type, c]) => /*#__PURE__*/React.createElement("filter", {
-    key: type,
-    id: `glow-${type}`
-  }, /*#__PURE__*/React.createElement("feGaussianBlur", {
-    stdDeviation: "3",
-    result: "coloredBlur"
-  }), /*#__PURE__*/React.createElement("feMerge", null, /*#__PURE__*/React.createElement("feMergeNode", {
-    in: "coloredBlur"
-  }), /*#__PURE__*/React.createElement("feMergeNode", {
-    in: "SourceGraphic"
-  })))), Object.entries(NODE_COLORS).map(([type, c]) => /*#__PURE__*/React.createElement("filter", {
-    key: `hover-${type}`,
-    id: `glow-hover-${type}`
-  }, /*#__PURE__*/React.createElement("feGaussianBlur", {
-    stdDeviation: "1.5",
-    result: "coloredBlur"
-  }), /*#__PURE__*/React.createElement("feMerge", null, /*#__PURE__*/React.createElement("feMergeNode", {
-    in: "coloredBlur"
-  }), /*#__PURE__*/React.createElement("feMergeNode", {
-    in: "SourceGraphic"
-  }))))), /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("pattern", {
-    id: "dotgrid",
-    x: "0",
-    y: "0",
-    width: "24",
-    height: "24",
-    patternUnits: "userSpaceOnUse"
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "1",
-    cy: "1",
-    r: "1",
-    fill: "#c8d3e8",
-    opacity: "0.7"
-  }))), /*#__PURE__*/React.createElement("rect", {
+  }, 
+  // Background and defs OUTSIDE the transform group - always fills viewport
+  /*#__PURE__*/React.createElement("defs", null, 
+    /*#__PURE__*/React.createElement("pattern", {
+      id: "dotgrid",
+      x: "0",
+      y: "0",
+      width: "24",
+      height: "24",
+      patternUnits: "userSpaceOnUse"
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "1",
+      cy: "1",
+      r: "1",
+      fill: darkMode ? "#30363d" : "#c8d3e8",
+      opacity: "0.7"
+    })),
+    /*#__PURE__*/React.createElement("marker", {
+      id: "arr",
+      markerWidth: "8",
+      markerHeight: "8",
+      refX: "6",
+      refY: "3",
+      orient: "auto"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M0,0 L0,6 L8,3 z",
+      fill: darkMode ? "#6e7681" : "#9aaac4"
+    })),
+    /*#__PURE__*/React.createElement("marker", {
+      id: "arr-bk",
+      markerWidth: "8",
+      markerHeight: "8",
+      refX: "6",
+      refY: "3",
+      orient: "auto"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M0,0 L0,6 L8,3 z",
+      fill: "#e53e3e"
+    })),
+    /*#__PURE__*/React.createElement("marker", {
+      id: "arr-causal",
+      markerWidth: "8",
+      markerHeight: "8",
+      refX: "6",
+      refY: "3",
+      orient: "auto"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M0,0 L0,6 L8,3 z",
+      fill: "#16a34a"
+    })),
+    Object.entries(NODE_COLORS).map(([type, c]) => /*#__PURE__*/React.createElement("filter", {
+      key: type,
+      id: `glow-${type}`
+    }, /*#__PURE__*/React.createElement("feGaussianBlur", {
+      stdDeviation: "3",
+      result: "coloredBlur"
+    }), /*#__PURE__*/React.createElement("feMerge", null, /*#__PURE__*/React.createElement("feMergeNode", {
+      in: "coloredBlur"
+    }), /*#__PURE__*/React.createElement("feMergeNode", {
+      in: "SourceGraphic"
+    })))),
+    Object.entries(NODE_COLORS).map(([type, c]) => /*#__PURE__*/React.createElement("filter", {
+      key: `hover-${type}`,
+      id: `glow-hover-${type}`
+    }, /*#__PURE__*/React.createElement("feGaussianBlur", {
+      stdDeviation: "1.5",
+      result: "coloredBlur"
+    }), /*#__PURE__*/React.createElement("feMerge", null, /*#__PURE__*/React.createElement("feMergeNode", {
+      in: "coloredBlur"
+    }), /*#__PURE__*/React.createElement("feMergeNode", {
+      in: "SourceGraphic"
+    }))))
+  ),
+  // Fixed background - always fills viewport regardless of zoom
+  /*#__PURE__*/React.createElement("rect", {
     width: "100%",
     height: "100%",
-    fill: "#f5f7fb"
-  }), /*#__PURE__*/React.createElement("rect", {
+    fill: darkMode ? "#0d1117" : "#f5f7fb"
+  }),
+  /*#__PURE__*/React.createElement("rect", {
     width: "100%",
     height: "100%",
     fill: "url(#dotgrid)"
-  }), edges.map(edge => {
+  }),
+  // Transformed group - only contains edges and nodes
+  /*#__PURE__*/React.createElement("g", { transform: `translate(${viewTransform.x},${viewTransform.y}) scale(${viewTransform.scale})` },
+  edges.map(edge => {
     const ep0 = edgePath(edge);
     if (!ep0) return null;
     const ep = autoBend(edge, ep0);
     const cls = edgeClass(edge);
+    const isAnimated = animatedPaths.has(edge.id);
     const color = cls === 'backdoor' ? '#e53e3e' : cls === 'causal-biased' ? '#e53e3e' : cls === 'causal' ? '#16a34a' : cls === 'blocked' ? '#b0bcd4' : '#9aaac4';
     const markerId = cls === 'backdoor' ? 'arr-bk' : cls === 'causal-biased' ? 'arr-bk' : cls === 'causal' ? 'arr-causal' : 'arr';
     const dash = cls === 'backdoor' ? '6 3' : cls === 'blocked' ? '4 3' : 'none';
     const sw = cls === 'backdoor' ? 2 : cls === 'causal-biased' ? 2.5 : cls === 'causal' ? 2 : 1.5;
+    // Animation style for flowing paths
+    const animStyle = isAnimated ? {
+      strokeDasharray: '8 4',
+      animation: 'path-flow 0.5s linear infinite'
+    } : {};
     return /*#__PURE__*/React.createElement("g", {
       key: edge.id,
       onClick: e => onEdgeClick(e, edge.id),
@@ -3071,12 +3978,13 @@ function DAGStudio() {
       }
     }), /*#__PURE__*/React.createElement("path", {
       d: ep.d,
-      stroke: color,
-      strokeWidth: sw,
+      stroke: isAnimated ? (cls === 'causal' ? '#16a34a' : '#e53e3e') : color,
+      strokeWidth: isAnimated ? sw + 1 : sw,
       fill: "none",
-      strokeDasharray: dash,
+      strokeDasharray: isAnimated ? '8 4' : dash,
       markerEnd: `url(#${markerId})`,
-      opacity: cls === 'blocked' ? 0.5 : 0.85
+      opacity: cls === 'blocked' && !isAnimated ? 0.5 : isAnimated ? 1 : 0.85,
+      style: isAnimated ? { animation: 'path-flow 0.5s linear infinite' } : {}
     }))
   }), tool === 'edge' && edgeSrc && (() => {
     const s = nodes.find(n => n.id === edgeSrc);
@@ -3149,9 +4057,32 @@ function DAGStudio() {
         fontFamily: "'Inter','Segoe UI',sans-serif"
       }, nodeRole)
     ));
-  }))) , /*#__PURE__*/React.createElement("button", {
-    title: "Center DAG",
+  }))) , /*#__PURE__*/React.createElement("div", {
+    className: "canvas-controls",
+    style: {
+      position: 'absolute', bottom: 48, left: 16, right: 16, zIndex: 10,
+      display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center'
+    }
+  },
+  /*#__PURE__*/React.createElement("button", {
+    title: "Fit DAG to View",
+    className: "cv-btn",
+    onClick: () => fitToView(),
+    style: {
+      background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)',
+      border: '1.5px solid #d4ddef', borderRadius: 8,
+      padding: '6px 12px', cursor: 'pointer',
+      fontSize: 10, fontWeight: 700,
+      color: '#3b7cf4', fontFamily: "'Plus Jakarta Sans',sans-serif",
+      boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+    }
+  }, "Fit"),
+  /*#__PURE__*/React.createElement("button", {
+    title: "Reset View (1:1 scale)",
+    className: "cv-btn",
     onClick: () => {
+      resetViewTransform();
+      // Also center the nodes at 1:1 scale
       if (!nodes.length || !svgRef.current) return;
       const r = svgRef.current.getBoundingClientRect();
       const xs = nodes.map(n => n.x), ys = nodes.map(n => n.y);
@@ -3162,27 +4093,28 @@ function DAGStudio() {
       _setNodes(prev => prev.map(n => ({ ...n, x: n.x - cx + svgW / 2, y: n.y - cy + svgH / 2 })));
     },
     style: {
-      position: 'absolute', bottom: 48, left: 16, zIndex: 10,
-      background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(8px)',
-      border: '1.5px solid #d4ddef', borderRadius: 10,
-      padding: '7px 18px', cursor: 'pointer',
-      fontSize: 10, fontWeight: 800, letterSpacing: '.08em',
-      color: '#3b7cf4', fontFamily: "'Inter','Segoe UI',sans-serif",
-      boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+      background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)',
+      border: '1.5px solid #d4ddef', borderRadius: 8,
+      padding: '6px 12px', cursor: 'pointer',
+      fontSize: 10, fontWeight: 700,
+      color: '#6b7a99', fontFamily: "'Plus Jakarta Sans',sans-serif",
+      boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
     }
-  }, "Center"), /*#__PURE__*/React.createElement("button", {
+  }, "Reset"),
+  /*#__PURE__*/React.createElement("button", {
     onClick: undo,
     title: "Undo last action",
+    className: "cv-btn",
     style: {
-      position: 'absolute', bottom: 48, left: 100, zIndex: 10,
-      background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(8px)',
-      border: '1.5px solid #d4ddef', borderRadius: 10,
-      padding: '7px 18px', cursor: 'pointer',
-      fontSize: 10, fontWeight: 800, letterSpacing: '.08em',
-      color: '#6b7a99', fontFamily: "'Inter','Segoe UI',sans-serif",
-      boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+      background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)',
+      border: '1.5px solid #d4ddef', borderRadius: 8,
+      padding: '6px 12px', cursor: 'pointer',
+      fontSize: 10, fontWeight: 700,
+      color: '#6b7a99', fontFamily: "'Plus Jakarta Sans',sans-serif",
+      boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
     }
-  }, "Undo"), /*#__PURE__*/React.createElement("button", {
+  }, "Undo"),
+  /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       snapshot(); _setNodes([]); _setEdges([]); setExposure('');
       setOutcome('');
@@ -3190,48 +4122,87 @@ function DAGStudio() {
       setAiAnalysis(null);
       setAdjustedZ(new Set());
       setResearchQ('');
+      setSimData(null);
+      resetViewTransform();
     },
+    className: "cv-btn",
     style: {
-      position: 'absolute', bottom: 48, right: 16, zIndex: 10,
-      background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(8px)',
-      border: '1.5px solid #f5b8b8', borderRadius: 10,
-      padding: '7px 18px', cursor: 'pointer',
-      fontSize: 10, fontWeight: 800, letterSpacing: '.12em',
-      color: '#e53e3e', fontFamily: "'Inter','Segoe UI',sans-serif",
-      boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+      marginLeft: 'auto',
+      background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)',
+      border: '1.5px solid #f5b8b8', borderRadius: 8,
+      padding: '6px 12px', cursor: 'pointer',
+      fontSize: 10, fontWeight: 700,
+      color: '#e53e3e', fontFamily: "'Plus Jakarta Sans',sans-serif",
+      boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
     }
-  }, "CLEAR"), /*#__PURE__*/React.createElement("div", {
+  }, "Clear")
+  ), /*#__PURE__*/React.createElement("div", {
+    className: "canvas-legend",
+    onClick: () => isMobile() && setLegendExpanded(true),
+    title: isMobile() ? "Tap to expand legend" : "",
     style: {
-      position: 'absolute', bottom: 96, left: 16, zIndex: 10,
-      background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)',
-      border: '1.5px solid #d4ddef', borderRadius: 10,
-      padding: '8px 16px',
-      display: 'flex', alignItems: 'center', gap: 14,
-      boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+      position: 'absolute', bottom: 88, left: 16, zIndex: 10,
+      background: darkMode ? 'rgba(20,24,32,0.92)' : 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)',
+      border: `1.5px solid ${darkMode ? '#2d3548' : '#d4ddef'}`, borderRadius: 8,
+      padding: '6px 12px',
+      display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+      boxShadow: darkMode ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+      cursor: isMobile() ? 'pointer' : 'default'
     }
   }, Object.entries(NODE_COLORS).map(([type, c]) => /*#__PURE__*/React.createElement("div", {
     key: type,
-    style: { display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#7a8fb0' }
+    className: "legend-item",
+    style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'var(--text-secondary)' }
   }, /*#__PURE__*/React.createElement("div", {
-    style: { width: 8, height: 8, borderRadius: '50%', background: c.fill }
+    style: { width: 7, height: 7, borderRadius: '50%', background: c.fill }
   }), /*#__PURE__*/React.createElement("span", null, type))), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#7a8fb0' }
-  }, /*#__PURE__*/React.createElement("svg", {width:"18",height:"6"}, /*#__PURE__*/React.createElement("line", {x1:"0",y1:"3",x2:"18",y2:"3",stroke:"#16a34a",strokeWidth:"2"})), /*#__PURE__*/React.createElement("span", null, "causal")), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#7a8fb0' }
-  }, /*#__PURE__*/React.createElement("svg", {width:"18",height:"6"}, /*#__PURE__*/React.createElement("line", {x1:"0",y1:"3",x2:"18",y2:"3",stroke:"#e53e3e",strokeWidth:"2",strokeDasharray:"6 3"})), /*#__PURE__*/React.createElement("span", null, "backdoor")), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#7a8fb0' }
-  }, /*#__PURE__*/React.createElement("svg", {width:"18",height:"6"}, /*#__PURE__*/React.createElement("line", {x1:"0",y1:"3",x2:"18",y2:"3",stroke:"#b0bcd4",strokeWidth:"1.5",strokeDasharray:"4 3",opacity:"0.5"})), /*#__PURE__*/React.createElement("span", null, "blocked"))), /*#__PURE__*/React.createElement("div", {
+    className: "legend-item",
+    style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'var(--text-secondary)' }
+  }, /*#__PURE__*/React.createElement("svg", {width:"14",height:"6"}, /*#__PURE__*/React.createElement("line", {x1:"0",y1:"3",x2:"14",y2:"3",stroke:"#16a34a",strokeWidth:"2"})), /*#__PURE__*/React.createElement("span", null, "causal")), /*#__PURE__*/React.createElement("div", {
+    className: "legend-item",
+    style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'var(--text-secondary)' }
+  }, /*#__PURE__*/React.createElement("svg", {width:"14",height:"6"}, /*#__PURE__*/React.createElement("line", {x1:"0",y1:"3",x2:"14",y2:"3",stroke:"#e53e3e",strokeWidth:"2",strokeDasharray:"5 2"})), /*#__PURE__*/React.createElement("span", null, "backdoor")), /*#__PURE__*/React.createElement("div", {
+    className: "legend-item",
+    style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'var(--text-secondary)' }
+  }, /*#__PURE__*/React.createElement("svg", {width:"14",height:"6"}, /*#__PURE__*/React.createElement("line", {x1:"0",y1:"3",x2:"14",y2:"3",stroke:"#b0bcd4",strokeWidth:"1.5",strokeDasharray:"3 2",opacity:"0.6"})), /*#__PURE__*/React.createElement("span", null, "blocked")),
+  isMobile() && /*#__PURE__*/React.createElement("span", { className: "legend-expand-hint" }, "▸")),
+  
+  legendExpanded && /*#__PURE__*/React.createElement("div", {
+    className: "legend-modal",
+    onClick: () => setLegendExpanded(false)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "legend-modal-content",
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("div", { className: "legend-modal-title" },
+    /*#__PURE__*/React.createElement("span", null, "Legend"),
+    /*#__PURE__*/React.createElement("button", { className: "legend-modal-close", onClick: () => setLegendExpanded(false) }, "×")
+  ), /*#__PURE__*/React.createElement("div", { className: "legend-modal-items" },
+    /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 4 } }, "Node Types"),
+    Object.entries(NODE_COLORS).map(([type, c]) => /*#__PURE__*/React.createElement("div", {
+      key: type, className: "legend-modal-item"
+    }, /*#__PURE__*/React.createElement("div", { style: { width: 12, height: 12, borderRadius: '50%', background: c.fill } }),
+    /*#__PURE__*/React.createElement("span", { style: { textTransform: 'capitalize' } }, type))),
+    /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 12, marginBottom: 4 } }, "Path Types"),
+    /*#__PURE__*/React.createElement("div", { className: "legend-modal-item" },
+      /*#__PURE__*/React.createElement("svg", {width:"24",height:"8"}, /*#__PURE__*/React.createElement("line", {x1:"0",y1:"4",x2:"24",y2:"4",stroke:"#16a34a",strokeWidth:"2"})),
+      /*#__PURE__*/React.createElement("span", null, "Causal path")),
+    /*#__PURE__*/React.createElement("div", { className: "legend-modal-item" },
+      /*#__PURE__*/React.createElement("svg", {width:"24",height:"8"}, /*#__PURE__*/React.createElement("line", {x1:"0",y1:"4",x2:"24",y2:"4",stroke:"#e53e3e",strokeWidth:"2",strokeDasharray:"5 2"})),
+      /*#__PURE__*/React.createElement("span", null, "Backdoor path (open)")),
+    /*#__PURE__*/React.createElement("div", { className: "legend-modal-item" },
+      /*#__PURE__*/React.createElement("svg", {width:"24",height:"8"}, /*#__PURE__*/React.createElement("line", {x1:"0",y1:"4",x2:"24",y2:"4",stroke:"#b0bcd4",strokeWidth:"1.5",strokeDasharray:"3 2",opacity:"0.6"})),
+      /*#__PURE__*/React.createElement("span", null, "Blocked path"))
+  ))),
+
+  /*#__PURE__*/React.createElement("div", {
     className: "sb"
   }, /*#__PURE__*/React.createElement("span", {
     className: "sb-dim"
-  }, nodes.length, " nodes \xB7 ", edges.length, " edges"), analysis && /*#__PURE__*/React.createElement("span", {
-    className: "sb-info"
-  }, analysis.backdoor.length, " backdoor path", analysis.backdoor.length !== 1 ? 's' : ''), /*#__PURE__*/React.createElement("span", {
-    className: "sb-dim",
-    style: {
-      marginLeft: 'auto'
-    }
-  }, tool === 'move' && '↖ Drag nodes · click to select', tool === 'node' && '+ Click canvas to place a new node', tool === 'edge' && !edgeSrc && '→ Click source node', tool === 'edge' && edgeSrc && `→ Click target (from: ${nodeLabel(edgeSrc)})`, tool === 'erase' && '✕ Click any node or edge to remove'))), /*#__PURE__*/React.createElement("div", {
+  }, tool === 'move' && (isMobile() ? 'Tap node · 2-finger pan/zoom' : 'Drag nodes · scroll to zoom'), 
+     tool === 'node' && 'Click canvas to place node', 
+     tool === 'edge' && !edgeSrc && 'Click source node', 
+     tool === 'edge' && edgeSrc && `Click target (from: ${nodeLabel(edgeSrc)})`, 
+     tool === 'erase' && 'Click node or edge to remove'))), /*#__PURE__*/React.createElement("div", {
     className: `pn${mobilePanel ? ' open' : ''}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "pn-scroll"
@@ -3311,7 +4282,7 @@ function DAGStudio() {
   }, /*#__PURE__*/React.createElement(SectionHeader, {
     label: "Adjustment Guidance",
     sectionKey: "adjGuidance",
-    accent: "#0da271",
+    accent: "#3b7cf4",
     open: openSections.adjGuidance,
     onToggle: toggleSection
   }), openSections.adjGuidance && /*#__PURE__*/React.createElement("div", null,
@@ -3320,7 +4291,7 @@ function DAGStudio() {
 
       /* ── ALL PATHS ── */
       /*#__PURE__*/React.createElement("div", {style:{padding:'10px 16px 4px'}},
-        /*#__PURE__*/React.createElement("div", {style:{fontSize:10,fontWeight:700,color:'#9aaac4',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}},
+        /*#__PURE__*/React.createElement("div", {style:{fontSize:10,fontWeight:700,color:'var(--text-muted)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}},
           "All Paths (", analysis.all.length, ")"
         ),
         analysis.all.map((path, i) => {
@@ -3332,11 +4303,27 @@ function DAGStudio() {
           const label = isForward ? 'Causal' : isBlocked ? 'Blocked' : 'Open backdoor';
           const cls = isForward ? 'pd' : isBlocked ? 'pb-blocked' : 'pb';
           const icon = isForward ? '→' : isBlocked ? '✕' : '⚠';
-          const tagColor = isForward ? '#16a34a' : isBlocked ? '#b0bcd4' : '#e53e3e';
-          const tagBg = isForward ? '#f0faf6' : isBlocked ? '#f4f6fa' : '#fff4f4';
-          return /*#__PURE__*/React.createElement("div", {key:i, style:{display:'flex',flexDirection:'column',gap:2,marginBottom:8,paddingBottom:8,borderBottom:'1px solid #f0f2f7'}},
+          const tagColor = isForward ? 'var(--success)' : isBlocked ? 'var(--text-muted)' : 'var(--danger)';
+          const tagBg = isForward ? 'var(--success-bg)' : isBlocked ? 'var(--bg-primary)' : 'var(--danger-bg)';
+          
+          // Get edge IDs for this path
+          const pathEdgeIds = [];
+          for (let j = 0; j < path.length - 1; j++) {
+            const fromNode = path[j];
+            const toNode = path[j + 1];
+            // Find edge in either direction (since paths can traverse backwards)
+            const edge = edges.find(e => (e.src === fromNode && e.tgt === toNode) || (e.src === toNode && e.tgt === fromNode));
+            if (edge) pathEdgeIds.push(edge.id);
+          }
+          
+          return /*#__PURE__*/React.createElement("div", {
+            key:i, 
+            style:{display:'flex',flexDirection:'column',gap:2,marginBottom:8,paddingBottom:8,borderBottom:'1px solid var(--border-secondary)',cursor:'pointer',transition:'background .15s',borderRadius:6,padding:'6px 8px',margin:'0 -8px 8px'},
+            onMouseEnter: () => setAnimatedPaths(new Set(pathEdgeIds)),
+            onMouseLeave: () => setAnimatedPaths(new Set())
+          },
             /*#__PURE__*/React.createElement("span", {style:{fontSize:9,fontWeight:700,letterSpacing:'.06em',textTransform:'uppercase',padding:'2px 7px',borderRadius:4,background:tagBg,color:tagColor,border:`1px solid ${tagColor}40`,alignSelf:'flex-start'}}, label),
-            /*#__PURE__*/React.createElement("span", {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'#2d3748',lineHeight:1.6,paddingLeft:2}}, path.map(nodeLabel).join(' → '))
+            /*#__PURE__*/React.createElement("span", {style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,color:'var(--text-primary)',lineHeight:1.6,paddingLeft:2}}, path.map(nodeLabel).join(' → '))
           );
         })
       ),
@@ -3379,7 +4366,7 @@ function DAGStudio() {
   }, /*#__PURE__*/React.createElement(SectionHeader, {
     label: "Export",
     sectionKey: "export",
-    accent: "#8b5cf6",
+    accent: "#3b7cf4",
     open: openSections.export,
     onToggle: toggleSection
   }), openSections.export && /*#__PURE__*/React.createElement("div", {
@@ -3394,31 +4381,227 @@ function DAGStudio() {
     className: "exp-btn",
     onClick: () => doExport(fmt)
   }, fmt.toUpperCase())))),
+
 /*#__PURE__*/React.createElement("div", { style: { borderTop: '1px solid #eef2f8' } },
+  /*#__PURE__*/React.createElement(SectionHeader, {
+    label: "Data Simulation",
+    sectionKey: "simulation",
+    accent: "#3b7cf4",
+    open: openSections.simulation,
+    onToggle: toggleSection
+  }),
+  openSections.simulation && /*#__PURE__*/React.createElement("div", { style: { padding: '12px 16px' } },
+    /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
+        borderRadius: 8,
+        padding: '12px 14px',
+        marginBottom: 12,
+        border: '1px solid #d8b4fe'
+      }
+    },
+      /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: '#7c3aed', letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 8 } }, "Model Assumptions"),
+      /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: '#6b21a8', lineHeight: 1.6 } },
+        /*#__PURE__*/React.createElement("div", { style: { marginBottom: 6 } },
+          /*#__PURE__*/React.createElement("strong", null, "Linear Gaussian SEM"), " — All relationships are linear and additive."
+        ),
+        /*#__PURE__*/React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 10, marginTop: 8 } },
+          /*#__PURE__*/React.createElement("div", { style: { background: 'rgba(255,255,255,0.6)', borderRadius: 5, padding: '6px 8px' } },
+            /*#__PURE__*/React.createElement("div", { style: { fontWeight: 600, marginBottom: 2 } }, "Root Nodes"),
+            /*#__PURE__*/React.createElement("code", { style: { fontSize: 10, color: '#581c87' } }, "X ~ N(0, 1)")
+          ),
+          /*#__PURE__*/React.createElement("div", { style: { background: 'rgba(255,255,255,0.6)', borderRadius: 5, padding: '6px 8px' } },
+            /*#__PURE__*/React.createElement("div", { style: { fontWeight: 600, marginBottom: 2 } }, "Child Nodes"),
+            /*#__PURE__*/React.createElement("code", { style: { fontSize: 10, color: '#581c87' } }, "X = Σ 0.5·Pᵢ + ε")
+          ),
+          /*#__PURE__*/React.createElement("div", { style: { background: 'rgba(255,255,255,0.6)', borderRadius: 5, padding: '6px 8px' } },
+            /*#__PURE__*/React.createElement("div", { style: { fontWeight: 600, marginBottom: 2 } }, "Edge Coefficients"),
+            /*#__PURE__*/React.createElement("code", { style: { fontSize: 10, color: '#581c87' } }, "β = 0.5")
+          ),
+          /*#__PURE__*/React.createElement("div", { style: { background: 'rgba(255,255,255,0.6)', borderRadius: 5, padding: '6px 8px' } },
+            /*#__PURE__*/React.createElement("div", { style: { fontWeight: 600, marginBottom: 2 } }, "Error Term"),
+            /*#__PURE__*/React.createElement("code", { style: { fontSize: 10, color: '#581c87' } }, "ε ~ N(0, 0.25)")
+          )
+        )
+      )
+    ),
+    
+    /*#__PURE__*/React.createElement("div", { className: "fl" }, "Sample Size"),
+    /*#__PURE__*/React.createElement("select", {
+      className: "sel",
+      value: simSampleSize,
+      onChange: e => setSimSampleSize(Number(e.target.value)),
+      style: { marginBottom: 10 }
+    },
+      [100, 500, 1000, 2500, 5000, 10000].map(n => 
+        /*#__PURE__*/React.createElement("option", { key: n, value: n }, n.toLocaleString() + " observations")
+      )
+    ),
+    
+    /*#__PURE__*/React.createElement("div", { className: "fl" }, "Random Seed"),
+    /*#__PURE__*/React.createElement("input", {
+      className: "inp",
+      type: "number",
+      value: simSeed,
+      onChange: e => setSimSeed(Number(e.target.value)),
+      style: { marginBottom: 12 }
+    }),
+    
+    /*#__PURE__*/React.createElement("button", {
+      className: "gen-btn",
+      disabled: nodes.length === 0,
+      onClick: () => {
+        const nodeMap = {};
+        nodes.forEach(n => nodeMap[n.id] = n);
+        const result = simulateData(nodes, edges, simSampleSize, simSeed);
+        setSimData({ ...result, nodeMap });
+        setSimPreview(true);
+      },
+      style: { margin: 0, width: '100%', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }
+    }, "🎲 Simulate Data"),
+    
+    simData && /*#__PURE__*/React.createElement("div", { style: { marginTop: 12 } },
+      /*#__PURE__*/React.createElement("div", {
+        style: {
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          borderRadius: 7,
+          padding: '8px 10px',
+          fontSize: 11,
+          color: '#166534',
+          marginBottom: 8
+        }
+      }, "✓ Generated ", simData.data.length.toLocaleString(), " observations across ", simData.order.length, " variables"),
+      
+      /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: 8 } },
+        /*#__PURE__*/React.createElement("button", {
+          className: "exp-btn",
+          onClick: () => setSimPreview(true),
+          style: { flex: 1 }
+        }, "Preview"),
+        /*#__PURE__*/React.createElement("button", {
+          className: "exp-btn",
+          onClick: () => {
+            const csv = dataToCSV(simData.data, simData.order, simData.nodeMap);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dag_simulated_data.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+          },
+          style: { flex: 1 }
+        }, "Download CSV")
+      ),
+      
+      // Show regression analysis if exposure/outcome set
+      exposure && outcome && /*#__PURE__*/React.createElement("div", { style: { marginTop: 12, padding: '12px 14px', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderRadius: 8, border: '1px solid #e2e8f0' } },
+        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 } }, "Causal Effect Estimation"),
+        (() => {
+          // Compute true effect from DAG
+          const trueResult = computeTrueEffect(exposure, outcome, edges);
+          const trueEffect = trueResult.totalEffect;
+          
+          // Compute crude β (Y ~ X)
+          const crudeBeta = computeOLSCoefficients(simData.data, outcome, [exposure]);
+          const crudeEst = crudeBeta ? crudeBeta[1] : null;
+          
+          // Compute adjusted β (Y ~ X + Z)
+          const Z = Array.from(adjustedZ);
+          const adjBeta = Z.length > 0 ? computeOLSCoefficients(simData.data, outcome, [exposure, ...Z]) : null;
+          const adjEst = adjBeta ? adjBeta[1] : null;
+          
+          // Calculate bias
+          const crudeBias = crudeEst !== null ? crudeEst - trueEffect : null;
+          const adjBias = adjEst !== null ? adjEst - trueEffect : null;
+          
+          const expLabel = nodes.find(n=>n.id===exposure)?.label || exposure;
+          const outLabel = nodes.find(n=>n.id===outcome)?.label || outcome;
+          
+          return /*#__PURE__*/React.createElement(React.Fragment, null,
+            // True effect row
+            /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#fff', borderRadius: 6, marginBottom: 6, border: '1px solid #e2e8f0' } },
+              /*#__PURE__*/React.createElement("div", null,
+                /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, fontWeight: 600, color: '#1e293b' } }, "True Causal Effect"),
+                /*#__PURE__*/React.createElement("div", { style: { fontSize: 9, color: '#94a3b8' } }, "From DAG structure (β = 0.5 per edge)")
+              ),
+              /*#__PURE__*/React.createElement("span", { style: { fontSize: 14, fontWeight: 700, color: '#0f172a', fontFamily: "'IBM Plex Mono', monospace" } }, trueEffect.toFixed(3))
+            ),
+            
+            // Crude estimate row
+            crudeEst !== null && /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: Math.abs(crudeBias) > 0.05 ? '#fef2f2' : '#f0fdf4', borderRadius: 6, marginBottom: 6, border: `1px solid ${Math.abs(crudeBias) > 0.05 ? '#fecaca' : '#bbf7d0'}` } },
+              /*#__PURE__*/React.createElement("div", null,
+                /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, fontWeight: 600, color: '#1e293b' } }, "Crude β"),
+                /*#__PURE__*/React.createElement("div", { style: { fontSize: 9, color: '#64748b', fontFamily: "'IBM Plex Mono', monospace" } }, outLabel, " ~ ", expLabel)
+              ),
+              /*#__PURE__*/React.createElement("div", { style: { textAlign: 'right' } },
+                /*#__PURE__*/React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: Math.abs(crudeBias) > 0.05 ? '#dc2626' : '#16a34a', fontFamily: "'IBM Plex Mono', monospace" } }, crudeEst.toFixed(3)),
+                Math.abs(crudeBias) > 0.05 && /*#__PURE__*/React.createElement("div", { style: { fontSize: 9, color: '#dc2626', fontWeight: 600 } }, "Bias: ", crudeBias > 0 ? '+' : '', crudeBias.toFixed(3))
+              )
+            ),
+            
+            // Adjusted estimate row (if Z selected)
+            Z.length > 0 && adjEst !== null && /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: Math.abs(adjBias) > 0.05 ? '#fef2f2' : '#f0fdf4', borderRadius: 6, marginBottom: 6, border: `1px solid ${Math.abs(adjBias) > 0.05 ? '#fecaca' : '#bbf7d0'}` } },
+              /*#__PURE__*/React.createElement("div", null,
+                /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, fontWeight: 600, color: '#1e293b' } }, "Adjusted β"),
+                /*#__PURE__*/React.createElement("div", { style: { fontSize: 9, color: '#64748b', fontFamily: "'IBM Plex Mono', monospace" } }, outLabel, " ~ ", expLabel, " + {", Z.map(z => nodes.find(n=>n.id===z)?.label).join(', '), "}")
+              ),
+              /*#__PURE__*/React.createElement("div", { style: { textAlign: 'right' } },
+                /*#__PURE__*/React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: Math.abs(adjBias) > 0.05 ? '#dc2626' : '#16a34a', fontFamily: "'IBM Plex Mono', monospace" } }, adjEst.toFixed(3)),
+                /*#__PURE__*/React.createElement("div", { style: { fontSize: 9, color: Math.abs(adjBias) > 0.05 ? '#dc2626' : '#16a34a', fontWeight: 600 } }, 
+                  Math.abs(adjBias) <= 0.05 ? '✓ Unbiased' : 'Bias: ' + (adjBias > 0 ? '+' : '') + adjBias.toFixed(3)
+                )
+              )
+            ),
+            
+            // Hint if no adjustment selected but there are backdoor paths
+            Z.length === 0 && analysis?.backdoor?.length > 0 && /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4, padding: '6px 8px', background: '#f8fafc', borderRadius: 4 } },
+              "💡 Select variables in 'Adjust For' above to see adjusted estimates"
+            ),
+            
+            // Show causal paths
+            trueResult.paths.length > 0 && /*#__PURE__*/React.createElement("details", { style: { marginTop: 8 } },
+              /*#__PURE__*/React.createElement("summary", { style: { fontSize: 10, color: '#64748b', cursor: 'pointer', userSelect: 'none' } }, "Causal paths (", trueResult.paths.length, ")"),
+              /*#__PURE__*/React.createElement("div", { style: { marginTop: 6, fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: '#475569', lineHeight: 1.6 } },
+                trueResult.paths.map((p, i) => /*#__PURE__*/React.createElement("div", { key: i }, 
+                  p.path.map(id => nodes.find(n=>n.id===id)?.label || id).join(' → '), 
+                  " = ", p.coef.toFixed(3)
+                ))
+              )
+            )
+          );
+        })()
+      )
+    )
+  )
+),
+
+/*#__PURE__*/React.createElement("div", { style: { borderTop: `1px solid ${darkMode ? 'var(--border-secondary)' : '#eef2f8'}` } },
   /*#__PURE__*/React.createElement("button", {
     onClick: () => toggleSection('poweredByAI'),
     style: {
       width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer',
-      borderBottom: openSections.poweredByAI ? '1px solid #eef2f8' : 'none'
+      borderBottom: openSections.poweredByAI ? `1px solid ${darkMode ? 'var(--border-secondary)' : '#eef2f8'}` : 'none'
     }
   },
-    /*#__PURE__*/React.createElement("span", { style: { fontWeight: 700, fontSize: 11, color: '#1e2a40', letterSpacing: '.06em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 } },
-      /*#__PURE__*/React.createElement("span", { style: { color: '#3b7cf4', fontSize: 14 } }, "\u2726"),
+    /*#__PURE__*/React.createElement("span", { style: { fontWeight: 700, fontSize: 11, color: 'var(--accent)', letterSpacing: '.06em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 } },
+      /*#__PURE__*/React.createElement("span", { style: { fontSize: 14 } }, "\u2726"),
       "Powered by AI"
     ),
-    /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, color: '#9aaac4' } }, openSections.poweredByAI ? '\u25b2' : '\u25bc')
+    /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, color: 'var(--text-muted)' } }, openSections.poweredByAI ? '\u25b2' : '\u25bc')
   ),
   openSections.poweredByAI && /*#__PURE__*/React.createElement("div", null,
     /*#__PURE__*/React.createElement("div", {
       style: {
         margin: '12px 16px',
         padding: '12px 14px',
-        background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+        background: darkMode ? 'linear-gradient(135deg, #1f3a5f 0%, #1e3a5f 100%)' : 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
         borderRadius: 8,
-        border: '1px solid #93c5fd',
+        border: `1px solid ${darkMode ? '#388bfd' : '#93c5fd'}`,
         fontSize: 11,
-        color: '#1e40af',
+        color: darkMode ? '#93c5fd' : '#1e40af',
         lineHeight: 1.6
       }
     },
@@ -3508,7 +4691,18 @@ function DAGStudio() {
       color: '#b0bcd4',
       fontWeight: 500
     }
-  }, "John D. Diaz-Decaro, PhD, MS"), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "https://www.linkedin.com/in/jdiazdecaro/",
+    target: "_blank",
+    rel: "noopener noreferrer",
+    style: {
+      color: '#b0bcd4',
+      textDecoration: 'none',
+      transition: 'color 0.15s'
+    },
+    onMouseEnter: e => e.target.style.color = '#0a66c2',
+    onMouseLeave: e => e.target.style.color = '#b0bcd4'
+  }, "John D. Diaz-Decaro, PhD, MS")), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10,
       color: '#dde4f0'
@@ -3613,7 +4807,79 @@ function DAGStudio() {
   }, "Cancel"), /*#__PURE__*/React.createElement("button", {
     className: "ba",
     onClick: addNode
-  }, "Add Variable")))));
+  }, "Add Variable")))), simPreview && simData && /*#__PURE__*/React.createElement("div", {
+    className: "mbg",
+    onClick: () => setSimPreview(false)
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: '#fff', borderRadius: 16, boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+      padding: window.innerWidth < 500 ? '16px' : '24px', maxWidth: 900, width: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', gap: window.innerWidth < 500 ? 12 : 16
+    }
+  },
+  /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 } },
+    /*#__PURE__*/React.createElement("span", { style: { fontWeight: 700, fontSize: window.innerWidth < 500 ? 14 : 16, color: '#1e2a40' } }, "Simulated Data Preview"),
+    /*#__PURE__*/React.createElement("button", { onClick: () => setSimPreview(false), style: { background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#9aaac4', lineHeight: 1, padding: '4px 8px' } }, "×")
+  ),
+  /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: window.innerWidth < 500 ? 8 : 16, alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 } },
+    /*#__PURE__*/React.createElement("span", { style: { fontSize: window.innerWidth < 500 ? 11 : 12, color: '#64748b' } }, 
+      /*#__PURE__*/React.createElement("strong", null, simData.data.length.toLocaleString()), " obs × ", 
+      /*#__PURE__*/React.createElement("strong", null, simData.order.length), " vars"
+    ),
+    /*#__PURE__*/React.createElement("span", { style: { fontSize: window.innerWidth < 500 ? 10 : 11, color: '#94a3b8' } }, "Seed: ", simSeed),
+    /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        const csv = dataToCSV(simData.data, simData.order, simData.nodeMap);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'dag_simulated_data.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      style: { marginLeft: 'auto', padding: window.innerWidth < 500 ? '8px 12px' : '6px 16px', borderRadius: 6, border: 'none', background: '#8b5cf6', color: '#fff', cursor: 'pointer', fontSize: window.innerWidth < 500 ? 11 : 12, fontWeight: 600 }
+    }, "⬇ Download CSV")
+  ),
+  /*#__PURE__*/React.createElement("div", { style: { flex: 1, overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: 8, minHeight: 0, WebkitOverflowScrolling: 'touch' } },
+    /*#__PURE__*/React.createElement("table", { style: { width: '100%', borderCollapse: 'collapse', fontSize: window.innerWidth < 500 ? 10 : 12, fontFamily: "'IBM Plex Mono', monospace" } },
+      /*#__PURE__*/React.createElement("thead", null,
+        /*#__PURE__*/React.createElement("tr", { style: { background: '#f8fafc', position: 'sticky', top: 0, zIndex: 1 } },
+          /*#__PURE__*/React.createElement("th", { style: { padding: window.innerWidth < 500 ? '8px 6px' : '10px 12px', textAlign: 'left', borderBottom: '2px solid #e2e8f0', color: '#64748b', fontWeight: 700, fontSize: window.innerWidth < 500 ? 9 : 10, letterSpacing: '.05em', position: 'sticky', left: 0, background: '#f8fafc' } }, "#"),
+          simData.order.map(id => /*#__PURE__*/React.createElement("th", { key: id, style: { padding: window.innerWidth < 500 ? '8px 6px' : '10px 12px', textAlign: 'right', borderBottom: '2px solid #e2e8f0', color: '#1e293b', fontWeight: 700, fontSize: window.innerWidth < 500 ? 9 : 11, whiteSpace: 'nowrap' } }, simData.nodeMap[id]?.label || id))
+        )
+      ),
+      /*#__PURE__*/React.createElement("tbody", null,
+        simData.data.slice(0, window.innerWidth < 500 ? 50 : 100).map((row, i) => /*#__PURE__*/React.createElement("tr", { key: i, style: { background: i % 2 === 0 ? '#fff' : '#f8fafc' } },
+          /*#__PURE__*/React.createElement("td", { style: { padding: window.innerWidth < 500 ? '4px 6px' : '6px 12px', color: '#94a3b8', borderBottom: '1px solid #f1f5f9', position: 'sticky', left: 0, background: i % 2 === 0 ? '#fff' : '#f8fafc' } }, i + 1),
+          simData.order.map(id => /*#__PURE__*/React.createElement("td", { key: id, style: { padding: window.innerWidth < 500 ? '4px 6px' : '6px 12px', textAlign: 'right', color: '#334155', borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap' } }, row[id].toFixed(window.innerWidth < 500 ? 2 : 3)))
+        ))
+      )
+    )
+  ),
+  simData.data.length > (window.innerWidth < 500 ? 50 : 100) && /*#__PURE__*/React.createElement("div", { style: { textAlign: 'center', fontSize: 10, color: '#94a3b8', fontStyle: 'italic', flexShrink: 0 } }, "Showing first ", window.innerWidth < 500 ? 50 : 100, " of ", simData.data.length.toLocaleString(), " rows"),
+  
+  // Summary statistics
+  /*#__PURE__*/React.createElement("div", { style: { background: '#f8fafc', borderRadius: 8, padding: window.innerWidth < 500 ? '10px 12px' : '12px 16px', flexShrink: 0 } },
+    /*#__PURE__*/React.createElement("div", { style: { fontSize: window.innerWidth < 500 ? 9 : 10, fontWeight: 700, color: '#64748b', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 } }, "Summary Statistics"),
+    /*#__PURE__*/React.createElement("div", { style: { display: 'grid', gridTemplateColumns: window.innerWidth < 500 ? 'repeat(auto-fit, minmax(90px, 1fr))' : 'repeat(auto-fit, minmax(120px, 1fr))', gap: window.innerWidth < 500 ? 6 : 8 } },
+      simData.order.map(id => {
+        const vals = simData.data.map(r => r[id]);
+        const mean = vals.reduce((a,b) => a+b, 0) / vals.length;
+        const sd = Math.sqrt(vals.reduce((a,v) => a + (v-mean)**2, 0) / vals.length);
+        const min = Math.min(...vals);
+        const max = Math.max(...vals);
+        return /*#__PURE__*/React.createElement("div", { key: id, style: { background: '#fff', borderRadius: 6, padding: window.innerWidth < 500 ? '6px 8px' : '8px 10px', border: '1px solid #e2e8f0' } },
+          /*#__PURE__*/React.createElement("div", { style: { fontSize: window.innerWidth < 500 ? 10 : 11, fontWeight: 600, color: '#1e293b', marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, simData.nodeMap[id]?.label || id),
+          /*#__PURE__*/React.createElement("div", { style: { fontSize: window.innerWidth < 500 ? 9 : 10, color: '#64748b', fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.4 } },
+            "μ=", mean.toFixed(2), /*#__PURE__*/React.createElement("br", null),
+            "σ=", sd.toFixed(2)
+          )
+        );
+      })
+    )
+  )
+)));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(DAGStudio, null));
 </script>
